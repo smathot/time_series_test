@@ -1,0 +1,131 @@
+# Time Series Test
+
+*A statistical test and plotting function for time-series data in general, and data from cognitive-pupillometry experiments in particular*
+
+Sebastiaan Mathôt (@smathot) <br />
+Copyright 2021
+
+
+## Contents
+
+- [Citation](#citation)
+- [About](#about)
+- [Usage](#usage)
+- [Function reference](#function-reference)
+- [License](#license)
+
+
+## Citation
+
+Mathôt, S., & Vilotijević, A. (in prep). *A Hands-on Guide to Cognitive Pupillometry: from Design to Analysis.*
+
+
+## About
+
+For a more detailed descriptionm, see the manuscript above.
+
+This package provides a function (`find()`) that locates and statistically tests effects in time-series data. It does so by splitting the data in a number of subsets (by default 4). It takes one of the subsets (the *test* set) out of the full dataset, and conducts a linear mixed effects model on each sample of the remaining data (the *training* set). The sample with the highest absolute z value in the training set is used as the sample-to-be-tested for the test set. This procedure is repeated for all subsets of the data, and for all fixed effects in the model. Finally, a single linear mixed effects model is conducted for the samples that were thus identified.
+
+This packages also provides a function (`plot()`) to visualize the results of `find()`.
+
+
+## Usage
+
+We will use data from [Zhou, Lorist, and Mathôt (2021)](https://doi.org/10.1101/2021.11.23.469689). In brief, this is data from a visual-working-memory experiment in which participant memorized one or more colors (the set-size factor) of two different types (the color-type factor) while pupil size was being recorded during a 3s retention interval.
+
+This dataset contains the following columns:
+
+- `pupil`, which is is our dependent measure. It is a baseline-corrected pupil time series of 300 samples, recorded at 100 Hz
+- `subject_nr`, which we will use as a random effect
+- `set_size`, which we will use as a fixed effect
+- `color_type`, which we will use as a fixed effect
+
+First, load the dataset:
+
+```python
+from datamatrix import io
+dm = io.readpickle('data/zhou_et_al_2021.pkl')
+```
+
+The `plot()` function provides a convenient way to plot pupil size over time as a function of one or two factors, in this case set size and color type:
+
+```python
+import time_series_test as tst
+from matplotlib import pyplot as plt
+
+tst.plot(dm, dv='pupil', hue_factor='set_size', linestyle_factor='color_type')
+plt.savefig('img/signal-plot-1.png')
+```
+
+![](https://github.com/smathot/pupilstats/raw/master/img/signal-plot-1.png)
+
+From this plot, we can tell that there appear to be effects in the 1500 to 2000 ms interval. To test this, we could perform a linear mixed effects model on this interval, which corresponds to samples 150 to 200.
+
+The model below use mean pupil size during the 150 - 200 sample range as dependent measure, set size and color type as fixed effects, and a random by-subject intercept. In the more familiar notation of the R package `lme4`, this corresponds to `mean_pupil ~ ~ set_size * color_type + (1 | subject_nr)`. To use more complex random-effects structures, you can use the `re_formula` argument to `mixedlm()`.
+
+```python
+from statsmodels.formula.api import mixedlm
+from datamatrix import series as srs, NAN
+
+dm.mean_pupil = srs.reduce(dm.pupil[:, 150:200])
+dm_valid_data = dm.mean_pupil != NAN
+model = mixedlm(formula='mean_pupil ~ set_size * color_type',
+                data=dm_valid_data, groups='subject_nr').fit()
+print(model.summary())
+```
+
+The model summary shows that, assuming an alpha level of .05, there are significant main effects of color type (z = -2.136, p = .033), set size (z = 17.2, p < .001), and a significant color-type by set-size interaction (z = 2.47, p = .014).
+
+However, we have selectively analyzed a sample range that we knew, based on a visual inspection of the data, to show these effects. This means that our analysis is circular: we have looked at the data to decide where to look!
+
+The `find()` function improves this by splitting the data into training and tests sets, as described under [About](#about), thus breaking the circularity.
+
+```python
+results = tst.find(dm,  'pupil ~ set_size * color_type',
+                   groups='subject_nr', winlen=5)
+```
+
+
+The return value of `find()` is a `dict`, where the keys are the names of the tested effects, and the values is a named tupled that contains the following:
+
+- `model` is a model as returned by `mixedlm().fit()`
+- `samples` is a set with the sample indices that were used
+- `p` is the p-value from the model
+- `z` is the z-value from the model
+
+```python
+for effect, (model, samples, p, z) in results.items():
+    print('{} was tested at samples {} → z = {:.4f}, p = {:.4}'.format(
+          effect, samples, z, p))
+```
+
+We can even visualize the outcome by passing `results` to `signal_plot()`!
+
+```python
+tst.plot(dm, dv='pupil', hue_factor='set_size', linestyle_factor='color_type',
+         results=results)
+plt.savefig('img/signal-plot-2.png')
+```
+
+![](https://github.com/smathot/pupilstats/raw/master/img/signal-plot-2.png)
+
+
+## Function reference
+
+### find()
+
+```python
+print(tst.find.__doc__)
+```
+
+### plot()
+
+```python
+print(tst.plot.__doc__)
+```
+
+
+## License
+
+`biased_memory_toolbox` is licensed under the [GNU General Public License
+v3](http://www.gnu.org/licenses/gpl-3.0.en.html).
