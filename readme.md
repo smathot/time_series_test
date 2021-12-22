@@ -161,7 +161,7 @@ plt.savefig('img/signal-plot-2.png')
 
 
 
-![](https://github.com/smathot/time_series_test/raw/master/img/signal-plot-1.png)
+![](https://github.com/smathot/time_series_test/raw/master/img/signal-plot-2.png)
 
 
 ## Function reference
