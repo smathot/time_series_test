@@ -3,7 +3,7 @@
 *A statistical test and plotting function for time-series data in general, and data from cognitive-pupillometry experiments in particular*
 
 Sebastiaan Mathôt (@smathot) <br />
-Copyright 2021
+Copyright 2021 - 2022
 
 
 ## Contents
