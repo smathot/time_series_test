@@ -22,7 +22,7 @@ Mathôt, S., & Vilotijević, A. (in prep). *A Hands-on Guide to Cognitive Pupill
 
 ## About
 
-For a more detailed descriptionm, see the manuscript above.
+For a more detailed description, see the manuscript above.
 
 This package provides a function (`find()`) that locates and statistically tests effects in time-series data. It does so by splitting the data in a number of subsets (by default 4). It takes one of the subsets (the *test* set) out of the full dataset, and conducts a linear mixed effects model on each sample of the remaining data (the *training* set). The sample with the highest absolute z value in the training set is used as the sample-to-be-tested for the test set. This procedure is repeated for all subsets of the data, and for all fixed effects in the model. Finally, a single linear mixed effects model is conducted for the samples that were thus identified.
 
@@ -57,7 +57,7 @@ tst.plot(dm, dv='pupil', hue_factor='set_size', linestyle_factor='color_type')
 plt.savefig('img/signal-plot-1.png')
 ```
 
-![](https://github.com/smathot/pupilstats/raw/master/img/signal-plot-1.png)
+![](https://github.com/smathot/time_series_test/raw/master/img/signal-plot-1.png)
 
 From this plot, we can tell that there appear to be effects in the 1500 to 2000 ms interval. To test this, we could perform a linear mixed effects model on this interval, which corresponds to samples 150 to 200.
 
@@ -107,7 +107,7 @@ tst.plot(dm, dv='pupil', hue_factor='set_size', linestyle_factor='color_type',
 plt.savefig('img/signal-plot-2.png')
 ```
 
-![](https://github.com/smathot/pupilstats/raw/master/img/signal-plot-2.png)
+![](https://github.com/smathot/time_series_test/raw/master/img/signal-plot-1.png)
 
 
 ## Function reference
