@@ -24,14 +24,14 @@ Mathôt, S., & Vilotijević, A. (in prep). *A Hands-on Guide to Cognitive Pupill
 
 For a more detailed description, see the manuscript above.
 
-This package provides a function (`find()`) that locates and statistically tests effects in time-series data. It does so by splitting the data in a number of subsets (by default 4). It takes one of the subsets (the *test* set) out of the full dataset, and conducts a linear mixed effects model on each sample of the remaining data (the *training* set). The sample with the highest absolute z value in the training set is used as the sample-to-be-tested for the test set. This procedure is repeated for all subsets of the data, and for all fixed effects in the model. Finally, a single linear mixed effects model is conducted for the samples that were thus identified.
+This package provides a function (`find()`) that locates and statistically tests effects in time-series data. It does so by splitting the data in a number of subsets (by default 4). It takes one of the subsets (the *test* set) out of the full dataset, and conducts a linear mixed effects model on each sample of the remaining data (the *training* set). The sample with the highest absolute z value in the training set is used as the sample-to-be-tested for the test set. This procedure is repeated for all subsets of the data, and for all fixed effects in the model. Finally, a single linear mixed effects model is conducted for each fixed effects on the samples that were thus identified.
 
-This packages also provides a function (`plot()`) to visualize the results of `find()`.
+This packages also provides a function (`plot()`) to visualize time-series data to visually annotate the results of `find()`.
 
 
 ## Usage
 
-We will use data from [Zhou, Lorist, and Mathôt (2021)](https://doi.org/10.1101/2021.11.23.469689). In brief, this is data from a visual-working-memory experiment in which participant memorized one or more colors (the set-size factor) of two different types (the color-type factor) while pupil size was being recorded during a 3s retention interval.
+We will use data from [Zhou, Lorist, and Mathôt (2021)](https://doi.org/10.1101/2021.11.23.469689). In brief, this is data from a visual-working-memory experiment in which participant memorized one or more colors (set size: 1, 2, 3 or 4) of two different types (color type: proto, nonproto) while pupil size was being recorded during a 3s retention interval.
 
 This dataset contains the following columns:
 
@@ -69,7 +69,7 @@ plt.savefig('img/signal-plot-1.png')
 
 From this plot, we can tell that there appear to be effects in the 1500 to 2000 ms interval. To test this, we could perform a linear mixed effects model on this interval, which corresponds to samples 150 to 200.
 
-The model below use mean pupil size during the 150 - 200 sample range as dependent measure, set size and color type as fixed effects, and a random by-subject intercept. In the more familiar notation of the R package `lme4`, this corresponds to `mean_pupil ~ ~ set_size * color_type + (1 | subject_nr)`. To use more complex random-effects structures, you can use the `re_formula` argument to `mixedlm()`.
+The model below uses mean pupil size during the 150 - 200 sample range as dependent measure, set size and color type as fixed effects, and a random by-subject intercept. In the more familiar notation of the R package `lme4`, this corresponds to `mean_pupil ~ set_size * color_type + (1 | subject_nr)`. (To use more complex random-effects structures, you can use the `re_formula` argument to `mixedlm()`.)
 
 
 
@@ -108,11 +108,7 @@ subject_nr Var               7217.423    9.882
 
 
 
-The model summary shows that, assuming an alpha level of .05, there are significant main effects of color type (z = -2.136, p = .033), set size (z = 17.2, p < .001), and a significant color-type by set-size interaction (z = 2.47, p = .014).
-
-However, we have selectively analyzed a sample range that we knew, based on a visual inspection of the data, to show these effects. This means that our analysis is circular: we have looked at the data to decide where to look!
-
-The `find()` function improves this by splitting the data into training and tests sets, as described under [About](#about), thus breaking the circularity.
+The model summary shows that, assuming an alpha level of .05, there are significant main effects of color type (z = -2.136, p = .033), set size (z = 17.2, p < .001), and a significant color-type by set-size interaction (z = 2.47, p = .014). However, we have selectively analyzed a sample range that we knew, based on a visual inspection of the data, to show these effects. This means that our analysis is circular: we have looked at the data to decide where to look! The `find()` function improves this by splitting the data into training and tests sets, as described under [About](#about), thus breaking the circularity.
 
 
 
@@ -124,12 +120,12 @@ results = tst.find(dm,  'pupil ~ set_size * color_type',
 
 
 
-The return value of `find()` is a `dict`, where the keys are the names of the tested effects, and the values is a named tupled that contains the following:
+The return value of `find()` is a `dict`, where keys are effect labels and values are named tuples of the following:
 
-- `model` is a model as returned by `mixedlm().fit()`
-- `samples` is a set with the sample indices that were used
-- `p` is the p-value from the model
-- `z` is the z-value from the model
+- `model`: a model as returned by `mixedlm().fit()`
+- `samples`: a set with the sample indices that were used
+- `p`: the p-value from the model
+- `z`: the z-value from the model
 
 
 
@@ -149,7 +145,7 @@ set_size:color_type[T.proto] was tested at samples {165, 175} → z = 2.5767, p 
 
 
 
-We can even visualize the outcome by passing `results` to `signal_plot()`!
+We can pass the `results` to `plot()` to visualize the results:
 
 
 
