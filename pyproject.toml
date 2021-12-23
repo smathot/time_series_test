@@ -16,7 +16,8 @@ dependencies = [
     "statsmodels",
     "matplotlib"
 ]
-keywords = "signal processing, statistics, plotting, data analysis, crossvalidation"
+keywords = ["signal processing", "statistics", "plotting", "data analysis",
+            "crossvalidation"]
 [project.urls]
 Documentation = "https://github.com/smathot/time_series_test"
 Source = "https://github.com/smathot/time_series_test"
