@@ -1,15 +1,16 @@
 # Time Series Test
 
-*A statistical test and plotting function for time-series data in general, and data from cognitive-pupillometry experiments in particular*
+*A statistical test and plotting function for time-series data in general, and data from cognitive-pupillometry experiments in particular. Based on linear mixed effects modeling and crossvalidation.*
 
 Sebastiaan Mathôt (@smathot) <br />
-Copyright 2021
+Copyright 2021 - 2022
 
 
 ## Contents
 
 - [Citation](#citation)
 - [About](#about)
+- [Dependencies](#dependencies)
 - [Usage](#usage)
 - [Function reference](#function-reference)
 - [License](#license)
@@ -24,9 +25,17 @@ Mathôt, S., & Vilotijević, A. (in prep). *A Hands-on Guide to Cognitive Pupill
 
 For a more detailed description, see the manuscript above.
 
-This package provides a function (`find()`) that locates and statistically tests effects in time-series data. It does so by splitting the data in a number of subsets (by default 4). It takes one of the subsets (the *test* set) out of the full dataset, and conducts a linear mixed effects model on each sample of the remaining data (the *training* set). The sample with the highest absolute z value in the training set is used as the sample-to-be-tested for the test set. This procedure is repeated for all subsets of the data, and for all fixed effects in the model. Finally, a single linear mixed effects model is conducted for each fixed effects on the samples that were thus identified.
+This package provides a function (`find()`) that locates and statistically tests effects in time-series data. It does so by using crossvalidation to identify time points to test, and then using a linear mixed effects model to actually perform the statistical test. More specifically, the data is subdivided in a number of subsets (by default 4). It takes one of the subsets (the *test* set) out of the full dataset, and conducts a linear mixed effects model on each sample of the remaining data (the *training* set). The sample with the highest absolute z value in the training set is used as the sample-to-be-tested for the test set. This procedure is repeated for all subsets of the data, and for all fixed effects in the model. Finally, a single linear mixed effects model is conducted for each fixed effects on the samples that were thus identified.
 
 This packages also provides a function (`plot()`) to visualize time-series data to visually annotate the results of `find()`.
+
+
+## Dependencies
+
+- [Python 3](https://www.python.org/)
+- [datamatrix](https://datamatrix.cogsci.nl/)
+- [statsmodels](https://www.statsmodels.org/)
+- [matplotlib](https://matplotlib.org/)
 
 
 ## Usage
