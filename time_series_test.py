@@ -11,7 +11,7 @@ import warnings
 import logging
 from collections import namedtuple
 
-__version__ = '0.1.0'
+__version__ = '0.2.0'
 TEAL = ['#004d40', '#00796b', '#009688', '#4db6ac', '#b2dfdb']
 DEEP_ORANGE = ['#bf360c', '#e64a19', '#ff5722', '#ff8a65', '#ffccbc']
 LINESTYLES = ['-', '--', ':']
@@ -19,9 +19,10 @@ logger = logging.getLogger('pupiltest')
 
 
 def find(dm, formula, groups, re_formula=None, winlen=1, split=4,
-         samples_fe=True, samples_re=True, fit_method=None, **kwargs):
+         split_method='interleaved', samples_fe=True, samples_re=True,
+         fit_method=None, **kwargs):
     """Conducts a single linear mixed effects model to a time series, where the
-    to-be-tested samples are determined through a validation-test procedure.
+    to-be-tested samples are determined through crossvalidation)(((((((((.
     
     This function uses `mixedlm()` from the `statsmodels` package. See the
     statsmodels documentation for a more detailed explanation of the
@@ -46,6 +47,10 @@ def find(dm, formula, groups, re_formula=None, winlen=1, split=4,
         downsampling window to speed up the analysis.
     split: int, optional
         The number of splits that the analysis should be based on.
+    split_method: str, optional
+        If 'interleaved', the data is split in a regular interleaved fashion,
+        such the first row goes to the first subset, the second row to the
+        second subset, etc. If 'random', the data is split randomly in subsets.
     samples_fe: bool, optional
         Indicates whether sample indices are included as an additive factor
         to the fixed-effects formula. If all splits yielded the same sample
@@ -71,6 +76,7 @@ def find(dm, formula, groups, re_formula=None, winlen=1, split=4,
     logger.debug('running localizer')
     dm.__lmer_localizer__ = _lmer_run_localizer(dm, formula, groups,
                                                 winlen=winlen, split=split,
+                                                split_method=split_method,
                                                 re_formula=re_formula,
                                                 fit_method=fit_method,
                                                 **kwargs)
@@ -188,16 +194,38 @@ def plot(dm, dv, hue_factor, results=None, linestyle_factor=None, hues=None,
                          loc='upper right')
 
 
-def _lmer_run_localizer(dm, formula, groups, re_formula=None, winlen=1,
-                        split=4, fit_method=None, **kwargs):
+def _interleaved_indices(length, split):
     
-    # Get tuples of indices, where the test indices are a subset of the data,
-    # and the reference indices are everything else.
     split_indices = []
     for start in range(split):
-        test_indices = [i for i in range(start, len(dm), split)]
-        ref_indices = [i for i in range(len(dm)) if i not in test_indices]
+        test_indices = [i for i in range(start, length, split)]
+        ref_indices = [i for i in range(length) if i not in test_indices]
         split_indices.append((test_indices, ref_indices))
+    return split_indices
+
+
+def _random_indices(length, split):
+    
+    indices = np.arange(length)
+    np.random.shuffle(indices)
+    split_indices = []
+    chunk_size = length // split
+    for start in range(split):
+        split_indices.append((indices[:chunk_size], indices[chunk_size:]))
+        indices = np.roll(indices, chunk_size)
+    return split_indices
+
+
+def _lmer_run_localizer(dm, formula, groups, re_formula=None, winlen=1,
+                        split=4, split_method='interleaved', fit_method=None,
+                        **kwargs):
+    
+    if split_method == 'interleaved':
+        split_indices = _interleaved_indices(len(dm), split)
+    elif split_method == 'random':
+        split_indices = _random_indices(len(dm), split)
+    else:
+        raise ValueError('invalid split_method: {}'.format(split_method))
     # Loop through all test and ref indices, get the corresponding datamatrix
     # objects, and run an lmer on the reference matrix and use this as the
     # localizer for the test matrix.
@@ -252,7 +280,7 @@ def _lmer_test_localizer(dm, formula, groups, re_formula=None, winlen=1,
             if samples_re and re_formula is not None:
                 _re_formula += ' + __lmer_samples__'
         lm = smf.mixedlm(_formula, test_dm[dv] != np.nan, groups=groups,
-                         re_formula=_re_formula).fit(method=fit_method)
+                        re_formula=_re_formula).fit(method=fit_method)
         effect_name = lm.model.exog_names[effect]
         results[effect_name] = Results(model=lm,
                                        samples=set(indices[:, effect]),
