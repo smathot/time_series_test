@@ -132,5 +132,5 @@ print(tst.plot.__doc__)
 
 ## License
 
-`biased_memory_toolbox` is licensed under the [GNU General Public License
+`time_series_test` is licensed under the [GNU General Public License
 v3](http://www.gnu.org/licenses/gpl-3.0.en.html).
