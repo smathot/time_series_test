@@ -182,7 +182,7 @@ print(tst.find.__doc__)
 __Output:__
 ``` .text
 Conducts a single linear mixed effects model to a time series, where the
-    to-be-tested samples are determined through a validation-test procedure.
+    to-be-tested samples are determined through crossvalidation)(((((((((.
     
     This function uses `mixedlm()` from the `statsmodels` package. See the
     statsmodels documentation for a more detailed explanation of the
@@ -207,6 +207,10 @@ Conducts a single linear mixed effects model to a time series, where the
         downsampling window to speed up the analysis.
     split: int, optional
         The number of splits that the analysis should be based on.
+    split_method: str, optional
+        If 'interleaved', the data is split in a regular interleaved fashion,
+        such the first row goes to the first subset, the second row to the
+        second subset, etc. If 'random', the data is split randomly in subsets.
     samples_fe: bool, optional
         Indicates whether sample indices are included as an additive factor
         to the fixed-effects formula. If all splits yielded the same sample
@@ -286,5 +290,5 @@ Visualizes a time series, where the signal is plotted as a function of
 
 ## License
 
-`biased_memory_toolbox` is licensed under the [GNU General Public License
+`time_series_test` is licensed under the [GNU General Public License
 v3](http://www.gnu.org/licenses/gpl-3.0.en.html).
