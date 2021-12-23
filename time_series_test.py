@@ -1,3 +1,6 @@
+# coding=utf-8
+"""A statistical test and plotting function for time-series data in general, and data from cognitive-pupillometry experiments in particular. Based on linear mixed effects modeling and crossvalidation.
+"""
 from datamatrix import DataMatrix, SeriesColumn, convert as cnv, \
     series as srs, operations as ops
 import numpy as np
@@ -8,6 +11,7 @@ import warnings
 import logging
 from collections import namedtuple
 
+__version__ = '0.1.0'
 TEAL = ['#004d40', '#00796b', '#009688', '#4db6ac', '#b2dfdb']
 DEEP_ORANGE = ['#bf360c', '#e64a19', '#ff5722', '#ff8a65', '#ffccbc']
 LINESTYLES = ['-', '--', ':']
