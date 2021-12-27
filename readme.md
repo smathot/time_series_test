@@ -214,6 +214,7 @@ parameters.
 #### Returns
 <b><i>dict</i></b>  A dict where keys are effect labels, and values are named tuples
 	of `model`, `samples`, `p`, and `z`.
+
 **<span style="color:purple">time&#95;series&#95;test.plot</span>_(dm, dv, hue_factor, results=None, linestyle_factor=None, hues=None, linestyles=None, alpha_level=0.05, annotate_intercept=False, annotation_hues=None, annotation_linestyle=':')_**
 
 
