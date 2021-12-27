@@ -90,7 +90,6 @@ results = tst.find(dm,  'pupil ~ set_size * color_type',
                    groups='subject_nr', winlen=5)
 ```
 
-
 The return value of `find()` is a `dict`, where keys are effect labels and values are named tuples of the following:
 
 - `model`: a model as returned by `mixedlm().fit()`
@@ -117,16 +116,10 @@ plt.savefig('img/signal-plot-2.png')
 
 ## Function reference
 
-### find()
-
 ```python
-print(tst.find.__doc__)
-```
-
-### plot()
-
-```python
-print(tst.plot.__doc__)
+from npdoc_to_md import render_md_from_obj_docstring
+print(render_md_from_obj_docstring(tst.find, 'time_series_test.find'))
+print(render_md_from_obj_docstring(tst.plot, 'time_series_test.plot'))
 ```
 
 

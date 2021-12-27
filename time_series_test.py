@@ -22,7 +22,7 @@ def find(dm, formula, groups, re_formula=None, winlen=1, split=4,
          split_method='interleaved', samples_fe=True, samples_re=True,
          fit_method=None, **kwargs):
     """Conducts a single linear mixed effects model to a time series, where the
-    to-be-tested samples are determined through crossvalidation)(((((((((.
+    to-be-tested samples are determined through crossvalidation.
     
     This function uses `mixedlm()` from the `statsmodels` package. See the
     statsmodels documentation for a more detailed explanation of the
@@ -49,8 +49,10 @@ def find(dm, formula, groups, re_formula=None, winlen=1, split=4,
         The number of splits that the analysis should be based on.
     split_method: str, optional
         If 'interleaved', the data is split in a regular interleaved fashion,
-        such the first row goes to the first subset, the second row to the
+        such that the first row goes to the first subset, the second row to the
         second subset, etc. If 'random', the data is split randomly in subsets.
+        Interleaved splitting is deterministic (i.e. it results in the same
+        outcome each time), but random splitting is not.
     samples_fe: bool, optional
         Indicates whether sample indices are included as an additive factor
         to the fixed-effects formula. If all splits yielded the same sample

@@ -128,7 +128,6 @@ results = tst.find(dm,  'pupil ~ set_size * color_type',
 
 
 
-
 The return value of `find()` is a `dict`, where keys are effect labels and values are named tuples of the following:
 
 - `model`: a model as returned by `mixedlm().fit()`
@@ -171,118 +170,86 @@ plt.savefig('img/signal-plot-2.png')
 
 ## Function reference
 
-### find()
-
 
 
 ```python
-print(tst.find.__doc__)
+from npdoc_to_md import render_md_from_obj_docstring
+print(render_md_from_obj_docstring(tst.find, 'time_series_test.find'))
+print(render_md_from_obj_docstring(tst.plot, 'time_series_test.plot'))
 ```
 
 __Output:__
 ``` .text
+**<span style="color:purple">time&#95;series&#95;test.find</span>_(dm, formula, groups, re_formula=None, winlen=1, split=4, split_method='interleaved', samples_fe=True, samples_re=True, fit_method=None, **kwargs)_**
+
+
 Conducts a single linear mixed effects model to a time series, where the
-    to-be-tested samples are determined through crossvalidation)(((((((((.
-    
-    This function uses `mixedlm()` from the `statsmodels` package. See the
-    statsmodels documentation for a more detailed explanation of the
-    parameters.
-    
-    Parameters
-    ----------
-    dm: DataMatrix
-        The dataset
-    formula: str
-        A formula that describes the dependent variable, which should be the
-        name of a series column in `dm`, and the fixed effects, which should
-        be regular (non-series) columns.
-    groups: str or list of str
-        The groups for the random effects, which should be regular (non-series)
-        columns in `dm`.
-    re_formula: str or None
-        A formula that describes the random effects, which should be regular
-        (non-series) columns in `dm`.
-    winlen: int, optional
-        The number of samples that should be analyzed together, i.e. a 
-        downsampling window to speed up the analysis.
-    split: int, optional
-        The number of splits that the analysis should be based on.
-    split_method: str, optional
-        If 'interleaved', the data is split in a regular interleaved fashion,
-        such the first row goes to the first subset, the second row to the
-        second subset, etc. If 'random', the data is split randomly in subsets.
-    samples_fe: bool, optional
-        Indicates whether sample indices are included as an additive factor
-        to the fixed-effects formula. If all splits yielded the same sample
-        index, this is ignored.
-    samples_re: bool, optional
-        Indicates whether sample indices are included as an additive factor
-        to the random-effects formula. If all splits yielded the same sample
-        index, this is ignored.
-    fit_method: str, list of str, or None, optional
-        The fitting method, which is passed as the `method` keyword to
-        `mixedlm.fit()`. This can be a label or a list of labels, in which
-        case different fitting methods are tried in case of convergence errors.
-    **kwargs: dict, optional
-        Optional keywords to be passed to `mixedlm()`, such as `groups` and
-        `re_formula`.
-        
-    Returns
-    -------
-    dict
-        A dict where keys are effect labels, and values are named tuples
-        of `model`, `samples`, `p`, and `z`.
-    
-```
+to-be-tested samples are determined through crossvalidation.
 
 
+This function uses `mixedlm()` from the `statsmodels` package. See the
+statsmodels documentation for a more detailed explanation of the
+parameters.
 
-### plot()
+#### Parameters
+* dm: DataMatrix :  The dataset
+* formula: str :  A formula that describes the dependent variable, which should be the
+	name of a series column in `dm`, and the fixed effects, which should
+	be regular (non-series) columns.
+* groups: str or list of str :  The groups for the random effects, which should be regular (non-series)
+	columns in `dm`.
+* re_formula: str or None :  A formula that describes the random effects, which should be regular
+	(non-series) columns in `dm`.
+* winlen: int, optional :  The number of samples that should be analyzed together, i.e. a 
+	downsampling window to speed up the analysis.
+* split: int, optional :  The number of splits that the analysis should be based on.
+* split_method: str, optional :  If 'interleaved', the data is split in a regular interleaved fashion,
+	such that the first row goes to the first subset, the second row to the
+	second subset, etc. If 'random', the data is split randomly in subsets.
+	Interleaved splitting is deterministic (i.e. it results in the same
+	outcome each time), but random splitting is not.
+* samples_fe: bool, optional :  Indicates whether sample indices are included as an additive factor
+	to the fixed-effects formula. If all splits yielded the same sample
+	index, this is ignored.
+* samples_re: bool, optional :  Indicates whether sample indices are included as an additive factor
+	to the random-effects formula. If all splits yielded the same sample
+	index, this is ignored.
+* fit_method: str, list of str, or None, optional :  The fitting method, which is passed as the `method` keyword to
+	`mixedlm.fit()`. This can be a label or a list of labels, in which
+	case different fitting methods are tried in case of convergence errors.
+* **kwargs: dict, optional :  Optional keywords to be passed to `mixedlm()`, such as `groups` and
+	`re_formula`.
+
+#### Returns
+<b><i>dict</i></b>  A dict where keys are effect labels, and values are named tuples
+	of `model`, `samples`, `p`, and `z`.
+**<span style="color:purple">time&#95;series&#95;test.plot</span>_(dm, dv, hue_factor, results=None, linestyle_factor=None, hues=None, linestyles=None, alpha_level=0.05, annotate_intercept=False, annotation_hues=None, annotation_linestyle=':')_**
 
 
-
-```python
-print(tst.plot.__doc__)
-```
-
-__Output:__
-``` .text
 Visualizes a time series, where the signal is plotted as a function of
-    sample number on the x-axis. One fixed effect is indicated by the hue
-    (color) of the lines. An optional second fixed effect is indicated by the
-    linestyle. If the `results` parameter is used, significant effects are
-    annotated in the figure.
-    
-    Parameters
-    ----------
-    dm: DataMatrix
-        The dataset
-    dv: str
-        The name of the dependent variable, which should be a series column
-        in `dm`.
-    hue_factor: str
-        The name of a regular (non-series) column in `dm` that specifies the
-        hue (color) of the lines.
-    results: dict, optional
-        A `results` dict as returned by `find()`.
-    linestyle_factor: str, optional
-        The name of a regular (non-series) column in `dm` that specifies the
-        linestyle of the lines for a two-factor plot.
-    hues: list or None, optional
-        A list of hues to be used as line colors for the first factor.
-    linestyles: list or None, optional
-        A list of linestyles to be used for the second factor.
-    alpha_level: float, optional
-        The alpha level (maximum p value) to be used for annotating effects
-        in the plot.
-    annotate_intercept: bool, optional
-        Specifies whether the intercept should also be annotated along with
-        the fixed effects.
-    annotation_hues: list or None, optional
-        A list of hues to be used as line color for the annotations.
-    annotation_linestyle: str, optional
-        The linestyle for the annotations.
-    
+sample number on the x-axis. One fixed effect is indicated by the hue
+(color) of the lines. An optional second fixed effect is indicated by the
+linestyle. If the `results` parameter is used, significant effects are
+annotated in the figure.
+
+
+#### Parameters
+* dm: DataMatrix :  The dataset
+* dv: str :  The name of the dependent variable, which should be a series column
+	in `dm`.
+* hue_factor: str :  The name of a regular (non-series) column in `dm` that specifies the
+	hue (color) of the lines.
+* results: dict, optional :  A `results` dict as returned by `find()`.
+* linestyle_factor: str, optional :  The name of a regular (non-series) column in `dm` that specifies the
+	linestyle of the lines for a two-factor plot.
+* hues: list or None, optional :  A list of hues to be used as line colors for the first factor.
+* linestyles: list or None, optional :  A list of linestyles to be used for the second factor.
+* alpha_level: float, optional :  The alpha level (maximum p value) to be used for annotating effects
+	in the plot.
+* annotate_intercept: bool, optional :  Specifies whether the intercept should also be annotated along with
+	the fixed effects.
+* annotation_hues: list or None, optional :  A list of hues to be used as line color for the annotations.
+* annotation_linestyle: str, optional :  The linestyle for the annotations.
 ```
 
 
