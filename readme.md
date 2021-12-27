@@ -171,15 +171,6 @@ plt.savefig('img/signal-plot-2.png')
 ## Function reference
 
 
-
-```python
-from npdoc_to_md import render_md_from_obj_docstring
-print(render_md_from_obj_docstring(tst.find, 'time_series_test.find'))
-print(render_md_from_obj_docstring(tst.plot, 'time_series_test.plot'))
-```
-
-__Output:__
-``` .text
 **<span style="color:purple">time&#95;series&#95;test.find</span>_(dm, formula, groups, re_formula=None, winlen=1, split=4, split_method='interleaved', samples_fe=True, samples_re=True, fit_method=None, **kwargs)_**
 
 
@@ -250,7 +241,6 @@ annotated in the figure.
 	the fixed effects.
 * annotation_hues: list or None, optional :  A list of hues to be used as line color for the annotations.
 * annotation_linestyle: str, optional :  The linestyle for the annotations.
-```
 
 
 
