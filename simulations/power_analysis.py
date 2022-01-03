@@ -22,7 +22,7 @@ def reduce_signal(dm, signal=.5, subjects=10):
 dm = io.readpickle('data/zhou_et_al_2021.pkl')
 N = int(sys.argv[1])
 split = int(sys.argv[2])
-samples = bool(sys.argv[3])
+samples = bool(int(sys.argv[3]))
 print('i,split,samples,signal,z')
 for i in range(N):
     for signal in np.linspace(0, 1, 6):
