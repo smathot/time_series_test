@@ -11,16 +11,16 @@ import warnings
 import logging
 from collections import namedtuple
 
-__version__ = '0.2.0'
+__version__ = '0.3.0'
 TEAL = ['#004d40', '#00796b', '#009688', '#4db6ac', '#b2dfdb']
 DEEP_ORANGE = ['#bf360c', '#e64a19', '#ff5722', '#ff8a65', '#ffccbc']
 LINESTYLES = ['-', '--', ':']
-logger = logging.getLogger('pupiltest')
+logger = logging.getLogger('time_series_test')
 
 
 def find(dm, formula, groups, re_formula=None, winlen=1, split=4,
          split_method='interleaved', samples_fe=True, samples_re=True,
-         fit_method=None, **kwargs):
+         fit_method=None, suppress_convergence_warnings=False, **kwargs):
     """Conducts a single linear mixed effects model to a time series, where the
     to-be-tested samples are determined through crossvalidation.
     
@@ -65,6 +65,9 @@ def find(dm, formula, groups, re_formula=None, winlen=1, split=4,
         The fitting method, which is passed as the `method` keyword to
         `mixedlm.fit()`. This can be a label or a list of labels, in which
         case different fitting methods are tried in case of convergence errors.
+    suppress_convergence_warnings: bool, optional
+        Installs a warning filter to suppress conververgence (and other)
+        warnings.
     **kwargs: dict, optional
         Optional keywords to be passed to `mixedlm()`, such as `groups` and
         `re_formula`.
@@ -75,18 +78,22 @@ def find(dm, formula, groups, re_formula=None, winlen=1, split=4,
         A dict where keys are effect labels, and values are named tuples
         of `model`, `samples`, `p`, and `z`.
     """
-    logger.debug('running localizer')
-    dm.__lmer_localizer__ = _lmer_run_localizer(dm, formula, groups,
-                                                winlen=winlen, split=split,
-                                                split_method=split_method,
-                                                re_formula=re_formula,
-                                                fit_method=fit_method,
-                                                **kwargs)
-    logger.debug('testing localizer results')
-    return _lmer_test_localizer(dm, formula, groups, re_formula=re_formula,
-                                winlen=winlen, samples_fe=samples_fe,
-                                fit_method=fit_method, samples_re=samples_re,
-                                **kwargs)
+    with warnings.catch_warnings():
+        if suppress_convergence_warnings:
+            from statsmodels.tools.sm_exceptions import ConvergenceWarning
+            warnings.simplefilter(action='ignore', category=ConvergenceWarning)
+        logger.debug('running localizer')
+        dm.__lmer_localizer__ = _lmer_run_localizer(dm, formula, groups,
+                                                    winlen=winlen, split=split,
+                                                    split_method=split_method,
+                                                    re_formula=re_formula,
+                                                    fit_method=fit_method,
+                                                    **kwargs)
+        logger.debug('testing localizer results')
+        return _lmer_test_localizer(dm, formula, groups, re_formula=re_formula,
+                                    winlen=winlen, samples_fe=samples_fe,
+                                    fit_method=fit_method, samples_re=samples_re,
+                                    **kwargs)
 
 
 def plot(dm, dv, hue_factor, results=None, linestyle_factor=None, hues=None,
@@ -194,6 +201,24 @@ def plot(dm, dv, hue_factor, results=None, linestyle_factor=None, hues=None,
         ]
         plt.gca().legend(handles=linestyle_legend, title=linestyle_factor,
                          loc='upper right')
+
+
+def summarize(results):
+    """Generates a string with a human-readable summary of a results `dict` as
+    returned by `find()`.
+    
+    Parameters
+    ----------
+    results: dict
+        A `results` dict as returned by `find()`.
+        
+    Returns
+    -------
+    str
+    """
+    for effect, (model, samples, p, z) in results.items():
+        print('{} was tested at samples {} → z = {:.4f}, p = {:.4}'.format(
+               effect, samples, z, p))
 
 
 def _interleaved_indices(length, split):
