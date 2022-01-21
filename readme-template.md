@@ -108,14 +108,14 @@ results = tst.find(dm,  'pupil ~ set_size * color_type',
 The return value of `find()` is a `dict`, where keys are effect labels and values are named tuples of the following:
 
 - `model`: a model as returned by `mixedlm().fit()`
-- `samples`: a set with the sample indices that were used
+- `samples`: a `set` with the sample indices that were used
 - `p`: the p-value from the model
 - `z`: the z-value from the model
 
+The `summarize()` function is a convenient way to get the results in a human-readable format.
+
 ```python
-for effect, (model, samples, p, z) in results.items():
-    print('{} was tested at samples {} → z = {:.4f}, p = {:.4}'.format(
-          effect, samples, z, p))
+print(tst.summarize(results))
 ```
 
 We can pass the `results` to `plot()` to visualize the results:
@@ -131,11 +131,7 @@ plt.savefig('img/signal-plot-2.png')
 
 ## Function reference
 
-```python
-from npdoc_to_md import render_md_from_obj_docstring
-print(render_md_from_obj_docstring(tst.find, 'time_series_test.find'))
-print(render_md_from_obj_docstring(tst.plot, 'time_series_test.plot'))
-```
+[API]
 
 
 ## License

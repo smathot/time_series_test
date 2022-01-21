@@ -20,15 +20,30 @@ Copyright 2021 - 2022
 
 Mathôt, S., & Vilotijević, A. (in prep). *A Hands-on Guide to Cognitive Pupillometry: from Design to Analysis.*
 
+*This is a work in progress. A preprint of this manuscript will be made available soon.*
+
 
 ## About
 
-For a more detailed description, see the manuscript above.
+In general terms, this package implements a statistical test for a specific-yet-common question when analyzing time-series data:
 
-This package provides a function (`find()`) that locates and statistically tests effects in time-series data. It does so by using crossvalidation to identify time points to test, and then using a linear mixed effects model to actually perform the statistical test. More specifically, the data is subdivided in a number of subsets (by default 4). It takes one of the subsets (the *test* set) out of the full dataset, and conducts a linear mixed effects model on each sample of the remaining data (the *training* set). The sample with the highest absolute z value in the training set is used as the sample-to-be-tested for the test set. This procedure is repeated for all subsets of the data, and for all fixed effects in the model. Finally, a single linear mixed effects model is conducted for each fixed effects on the samples that were thus identified.
+> Do one or more independent variables affect a continuously recorded dependent variable (a 'time series') at any point in time?
+
+When to use this test:
+
+- For time series consisting of only a single component, that is, when each independent variable has only a single effect on the time series. An example of this is the effect of stimulus intensity on pupil size, when presenting light flashes of different intensities.
+- When you do not know a priori which time points to test.
+
+When *not* to use this test:
+
+- For time series that contain multiple components, that is, when each independent variable affects the time series in multiple ways that change over time. An example of this is the effect of visual attention on lateralized EEG recordings, where different EEG components emerge at different points in time.
+- When you know a priori which time points to test.
+
+More specifically, this package provides a function (`find()`) that locates and statistically tests effects in time-series data. It does so by using crossvalidation to identify time points to test, and then using a linear mixed effects model to actually perform the statistical test. More specifically, the data is subdivided in a number of subsets (by default 4). It takes one of the subsets (the *test* set) out of the full dataset, and conducts a linear mixed effects model on each sample of the remaining data (the *training* set). The sample with the highest absolute z value in the training set is used as the sample-to-be-tested for the test set. This procedure is repeated for all subsets of the data, and for all fixed effects in the model. Finally, a single linear mixed effects model is conducted for each fixed effects on the samples that were thus identified.
 
 This packages also provides a function (`plot()`) to visualize time-series data to visually annotate the results of `find()`.
 
+For a more detailed description, see the manuscript above.
 
 ## Dependencies
 
@@ -131,16 +146,16 @@ results = tst.find(dm,  'pupil ~ set_size * color_type',
 The return value of `find()` is a `dict`, where keys are effect labels and values are named tuples of the following:
 
 - `model`: a model as returned by `mixedlm().fit()`
-- `samples`: a set with the sample indices that were used
+- `samples`: a `set` with the sample indices that were used
 - `p`: the p-value from the model
 - `z`: the z-value from the model
+
+The `summarize()` function is a convenient way to get the results in a human-readable format.
 
 
 
 ```python
-for effect, (model, samples, p, z) in results.items():
-    print('{} was tested at samples {} → z = {:.4f}, p = {:.4}'.format(
-          effect, samples, z, p))
+print(tst.summarize(results))
 ```
 
 __Output:__
@@ -149,6 +164,7 @@ Intercept was tested at samples {95} → z = -13.1098, p = 2.892e-39
 color_type[T.proto] was tested at samples {160, 170, 175} → z = -2.0949, p = 0.03618
 set_size was tested at samples {185, 210, 195, 255} → z = 16.2437, p = 2.475e-59
 set_size:color_type[T.proto] was tested at samples {165, 175} → z = 2.5767, p = 0.009974
+None
 ```
 
 
@@ -170,8 +186,7 @@ plt.savefig('img/signal-plot-2.png')
 
 ## Function reference
 
-
-**<span style="color:purple">time&#95;series&#95;test.find</span>_(dm, formula, groups, re_formula=None, winlen=1, split=4, split_method='interleaved', samples_fe=True, samples_re=True, fit_method=None, **kwargs)_**
+**<span style="color:purple">time&#95;series&#95;test.find</span>_(dm, formula, groups, re_formula=None, winlen=1, split=4, split_method='interleaved', samples_fe=True, samples_re=True, fit_method=None, suppress_convergence_warnings=False, **kwargs)_**
 
 
 Conducts a single linear mixed effects model to a time series, where the
@@ -208,6 +223,8 @@ parameters.
 * fit_method: str, list of str, or None, optional :  The fitting method, which is passed as the `method` keyword to
 	`mixedlm.fit()`. This can be a label or a list of labels, in which
 	case different fitting methods are tried in case of convergence errors.
+* suppress_convergence_warnings: bool, optional :  Installs a warning filter to suppress conververgence (and other)
+	warnings.
 * **kwargs: dict, optional :  Optional keywords to be passed to `mixedlm()`, such as `groups` and
 	`re_formula`.
 
@@ -243,7 +260,18 @@ annotated in the figure.
 * annotation_hues: list or None, optional :  A list of hues to be used as line color for the annotations.
 * annotation_linestyle: str, optional :  The linestyle for the annotations.
 
+**<span style="color:purple">time&#95;series&#95;test.summarize</span>_(results)_**
 
+
+Generates a string with a human-readable summary of a results `dict` as
+returned by `find()`.
+
+
+#### Parameters
+* results: dict :  A `results` dict as returned by `find()`.
+
+#### Returns
+<b><i>str</i></b>
 
 
 ## License
