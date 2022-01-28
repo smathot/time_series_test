@@ -11,7 +11,7 @@ import warnings
 import logging
 from collections import namedtuple
 
-__version__ = '0.3.0'
+__version__ = '0.4.0'
 TEAL = ['#004d40', '#00796b', '#009688', '#4db6ac', '#b2dfdb']
 DEEP_ORANGE = ['#bf360c', '#e64a19', '#ff5722', '#ff8a65', '#ffccbc']
 LINESTYLES = ['-', '--', ':']
@@ -20,7 +20,8 @@ logger = logging.getLogger('time_series_test')
 
 def find(dm, formula, groups, re_formula=None, winlen=1, split=4,
          split_method='interleaved', samples_fe=True, samples_re=True,
-         fit_method=None, suppress_convergence_warnings=False, **kwargs):
+         localizer_re=False, fit_method=None,
+         suppress_convergence_warnings=False, **kwargs):
     """Conducts a single linear mixed effects model to a time series, where the
     to-be-tested samples are determined through crossvalidation.
     
@@ -61,6 +62,10 @@ def find(dm, formula, groups, re_formula=None, winlen=1, split=4,
         Indicates whether sample indices are included as an additive factor
         to the random-effects formula. If all splits yielded the same sample
         index, this is ignored.
+    localizer_re: bool, optional
+        Indicates whether a random effects structure as specified using the
+        `re_formula` keyword should also be used for the localizer models,
+        or only for the final model.
     fit_method: str, list of str, or None, optional
         The fitting method, which is passed as the `method` keyword to
         `mixedlm.fit()`. This can be a label or a list of labels, in which
@@ -83,12 +88,11 @@ def find(dm, formula, groups, re_formula=None, winlen=1, split=4,
             from statsmodels.tools.sm_exceptions import ConvergenceWarning
             warnings.simplefilter(action='ignore', category=ConvergenceWarning)
         logger.debug('running localizer')
-        dm.__lmer_localizer__ = _lmer_run_localizer(dm, formula, groups,
-                                                    winlen=winlen, split=split,
-                                                    split_method=split_method,
-                                                    re_formula=re_formula,
-                                                    fit_method=fit_method,
-                                                    **kwargs)
+        dm.__lmer_localizer__ = _lmer_run_localizer(
+            dm, formula, groups, winlen=winlen, split=split,
+            split_method=split_method,
+            re_formula=re_formula if localizer_re else None,
+            fit_method=fit_method, **kwargs)
         logger.debug('testing localizer results')
         return _lmer_test_localizer(dm, formula, groups, re_formula=re_formula,
                                     winlen=winlen, samples_fe=samples_fe,
