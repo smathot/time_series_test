@@ -45,6 +45,13 @@ This packages also provides a function (`plot()`) to visualize time-series data 
 
 For a more detailed description, see the manuscript above.
 
+
+## Installation
+
+```
+pip install time_series_test
+```
+
 ## Dependencies
 
 - [Python 3](https://www.python.org/)
@@ -137,7 +144,7 @@ The model summary shows that, assuming an alpha level of .05, there are signific
 
 
 ```python
-results = tst.find(dm,  'pupil ~ set_size * color_type',
+results = tst.find(dm, 'pupil ~ set_size * color_type',
                    groups='subject_nr', winlen=5)
 ```
 
@@ -186,7 +193,7 @@ plt.savefig('img/signal-plot-2.png')
 
 ## Function reference
 
-**<span style="color:purple">time&#95;series&#95;test.find</span>_(dm, formula, groups, re_formula=None, winlen=1, split=4, split_method='interleaved', samples_fe=True, samples_re=True, fit_method=None, suppress_convergence_warnings=False, **kwargs)_**
+**<span style="color:purple">time&#95;series&#95;test.find</span>_(dm, formula, groups, re_formula=None, winlen=1, split=4, split_method='interleaved', samples_fe=True, samples_re=True, localizer_re=False, fit_method=None, suppress_convergence_warnings=False, **kwargs)_**
 
 
 Conducts a single linear mixed effects model to a time series, where the
@@ -220,6 +227,9 @@ parameters.
 * samples_re: bool, optional :  Indicates whether sample indices are included as an additive factor
 	to the random-effects formula. If all splits yielded the same sample
 	index, this is ignored.
+* localizer_re: bool, optional :  Indicates whether a random effects structure as specified using the
+	`re_formula` keyword should also be used for the localizer models,
+	or only for the final model.
 * fit_method: str, list of str, or None, optional :  The fitting method, which is passed as the `method` keyword to
 	`mixedlm.fit()`. This can be a label or a list of labels, in which
 	case different fitting methods are tried in case of convergence errors.

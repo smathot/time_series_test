@@ -45,6 +45,13 @@ This packages also provides a function (`plot()`) to visualize time-series data 
 
 For a more detailed description, see the manuscript above.
 
+
+## Installation
+
+```
+pip install time_series_test
+```
+
 ## Dependencies
 
 - [Python 3](https://www.python.org/)
@@ -101,7 +108,7 @@ print(model.summary())
 The model summary shows that, assuming an alpha level of .05, there are significant main effects of color type (z = -2.136, p = .033), set size (z = 17.2, p < .001), and a significant color-type by set-size interaction (z = 2.47, p = .014). However, we have selectively analyzed a sample range that we knew, based on a visual inspection of the data, to show these effects. This means that our analysis is circular: we have looked at the data to decide where to look! The `find()` function improves this by splitting the data into training and tests sets, as described under [About](#about), thus breaking the circularity.
 
 ```python
-results = tst.find(dm,  'pupil ~ set_size * color_type',
+results = tst.find(dm, 'pupil ~ set_size * color_type',
                    groups='subject_nr', winlen=5)
 ```
 
