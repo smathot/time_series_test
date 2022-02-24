@@ -55,7 +55,7 @@ pip install time_series_test
 ## Dependencies
 
 - [Python 3](https://www.python.org/)
-- [datamatrix](https://datamatrix.cogsci.nl/)
+- [datamatrix](https://pydatamatrix.eu/)
 - [statsmodels](https://www.statsmodels.org/)
 - [matplotlib](https://matplotlib.org/)
 
