@@ -11,7 +11,7 @@ import warnings
 import logging
 from collections import namedtuple
 
-__version__ = '0.5.0'
+__version__ = '0.6.0'
 TEAL = ['#004d40', '#00796b', '#009688', '#4db6ac', '#b2dfdb']
 DEEP_ORANGE = ['#bf360c', '#e64a19', '#ff5722', '#ff8a65', '#ffccbc']
 LINESTYLES = ['-', '--', ':']
@@ -21,7 +21,7 @@ logger = logging.getLogger('time_series_test')
 def find(dm, formula, groups, re_formula=None, winlen=1, split=4,
          split_method='interleaved', samples_fe=True, samples_re=True,
          localizer_re=False, fit_method=None,
-         suppress_convergence_warnings=False, **kwargs):
+         suppress_convergence_warnings=False, fit_kwargs=None, **kwargs):
     """Conducts a single linear mixed effects model to a time series, where the
     to-be-tested samples are determined through crossvalidation.
     
@@ -66,10 +66,12 @@ def find(dm, formula, groups, re_formula=None, winlen=1, split=4,
         Indicates whether a random effects structure as specified using the
         `re_formula` keyword should also be used for the localizer models,
         or only for the final model.
+    fit_kwargs: dict or None, optional
+        A `dict` that is passed as keyword arguments to `mixedlm.fit()`. For
+        example, to specify the nm as the fitting method, specify
+        `fit_kwargs={'fit': 'nm'}`.
     fit_method: str, list of str, or None, optional
-        The fitting method, which is passed as the `method` keyword to
-        `mixedlm.fit()`. This can be a label or a list of labels, in which
-        case different fitting methods are tried in case of convergence errors.
+        Deprecated. Use `fit_kwargs` instead.
     suppress_convergence_warnings: bool, optional
         Installs a warning filter to suppress conververgence (and other)
         warnings.
@@ -83,6 +85,14 @@ def find(dm, formula, groups, re_formula=None, winlen=1, split=4,
         A dict where keys are effect labels, and values are named tuples
         of `model`, `samples`, `p`, and `z`.
     """
+    if fit_kwargs is None:
+        fit_kwargs = {}
+    if fit_method is not None:
+        warnings.warn(
+            'The fit_method keyword is deprecated. Use fit_kwargs instead',
+            DeprecationWarning)
+        fit_kwargs['method'] = fit_method
+        print('xx')
     dm = _trim_dm(dm, formula, groups, re_formula)
     with warnings.catch_warnings():
         if suppress_convergence_warnings:
@@ -93,11 +103,11 @@ def find(dm, formula, groups, re_formula=None, winlen=1, split=4,
             dm, formula, groups, winlen=winlen, split=split,
             split_method=split_method,
             re_formula=re_formula if localizer_re else None,
-            fit_method=fit_method, **kwargs)
+            fit_kwargs=fit_kwargs, **kwargs)
         logger.debug('testing localizer results')
         return _lmer_test_localizer(dm, formula, groups, re_formula=re_formula,
                                     winlen=winlen, samples_fe=samples_fe,
-                                    fit_method=fit_method, samples_re=samples_re,
+                                    fit_kwargs=fit_kwargs, samples_re=samples_re,
                                     **kwargs)
 
 
@@ -269,7 +279,7 @@ def _random_indices(length, split):
 
 
 def _lmer_run_localizer(dm, formula, groups, re_formula=None, winlen=1,
-                        split=4, split_method='interleaved', fit_method=None,
+                        split=4, split_method='interleaved', fit_kwargs={},
                         **kwargs):
     
     if split_method == 'interleaved':
@@ -287,7 +297,7 @@ def _lmer_run_localizer(dm, formula, groups, re_formula=None, winlen=1,
             len(test_indices), len(ref_indices)))
         lm = _lmer_series(dm[ref_indices], formula, winlen=winlen,
                          groups=groups, re_formula=re_formula,
-                         fit_method=fit_method, **kwargs)
+                         fit_kwargs=fit_kwargs, **kwargs)
         if result_dm is None:
             result_dm = dm[tuple()]
             result_dm.lmer_localize = SeriesColumn(depth=len(lm))
@@ -299,7 +309,7 @@ def _lmer_run_localizer(dm, formula, groups, re_formula=None, winlen=1,
 
 def _lmer_test_localizer(dm, formula, groups, re_formula=None, winlen=1,
                          target_col='__lmer_localizer__', samples_fe=False,
-                         samples_re=False, fit_method=None):
+                         samples_re=False, fit_kwargs={}):
     test_dm = dm[:]
     dv = formula.split()[0]
     del test_dm[dv]
@@ -332,7 +342,7 @@ def _lmer_test_localizer(dm, formula, groups, re_formula=None, winlen=1,
             if samples_re and re_formula is not None:
                 _re_formula += ' + __lmer_samples__'
         lm = smf.mixedlm(_formula, test_dm[dv] != np.nan, groups=groups,
-                        re_formula=_re_formula).fit(method=fit_method)
+                        re_formula=_re_formula).fit(**fit_kwargs)
         effect_name = lm.model.exog_names[effect]
         results[effect_name] = Results(model=lm,
                                        samples=set(indices[:, effect]),
@@ -341,7 +351,7 @@ def _lmer_test_localizer(dm, formula, groups, re_formula=None, winlen=1,
     return results
 
 
-def _lmer_series(dm, formula, winlen=1, fit_method=None, **kwargs):
+def _lmer_series(dm, formula, winlen=1, fit_kwargs={}, **kwargs):
     
     col = formula.split()[0]
     depth = dm[col].depth
@@ -354,7 +364,7 @@ def _lmer_series(dm, formula, winlen=1, fit_method=None, **kwargs):
             wm[col] = srs.reduce(srs.window(wm[col], start=i, end=i+winlen))
         wm = wm[col] != np.nan
         try:
-            lm = smf.mixedlm(formula, wm, **kwargs).fit(method=fit_method)
+            lm = smf.mixedlm(formula, wm, **kwargs).fit(**fit_kwargs)
         except np.linalg.LinAlgError as e:
             warnings.warn('failed to fit mode: {}'.format(e))
             continue
