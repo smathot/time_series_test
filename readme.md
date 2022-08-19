@@ -5,6 +5,9 @@
 Sebastiaan Mathôt (@smathot) <br />
 Copyright 2021 - 2022
 
+[![Publish to PyPi](https://github.com/smathot/time_series_test/actions/workflows/publish-package.yaml/badge.svg)](https://github.com/smathot/time_series_test/actions/workflows/publish-package.yaml)
+[![Tests](https://github.com/smathot/time_series_test/actions/workflows/run-unittests.yaml/badge.svg)](https://github.com/smathot/time_series_test/actions/workflows/run-unittests.yaml)
+
 
 ## Contents
 
@@ -190,7 +193,7 @@ plt.savefig('img/signal-plot-2.png')
 
 ## Function reference
 
-## <span style="color:purple">time\_series\_test.find</span>_(dm, formula, groups, re\_formula=None, winlen=1, split=4, split\_method='interleaved', samples\_fe=True, samples\_re=True, localizer\_re=False, fit\_method=None, suppress\_convergence\_warnings=False, \*\*kwargs)_
+## <span style="color:purple">time\_series\_test.find</span>_(dm, formula, groups, re\_formula=None, winlen=1, split=4, split\_method='interleaved', samples\_fe=True, samples\_re=True, localizer\_re=False, fit\_method=None, suppress\_convergence\_warnings=False, fit\_kwargs=None, \*\*kwargs)_
 
 Conducts a single linear mixed effects model to a time series, where the
 to-be-tested samples are determined through crossvalidation.
@@ -256,11 +259,15 @@ parameters.
   `re_formula` keyword should also be used for the localizer models,
   or only for the final model.
 
+* **fit\_kwargs: dict or None, optional**
+
+  A `dict` that is passed as keyword arguments to `mixedlm.fit()`. For
+  example, to specify the nm as the fitting method, specify
+  `fit_kwargs={'fit': 'nm'}`.
+
 * **fit\_method: str, list of str, or None, optional**
 
-  The fitting method, which is passed as the `method` keyword to
-  `mixedlm.fit()`. This can be a label or a list of labels, in which
-  case different fitting methods are tried in case of convergence errors.
+  Deprecated. Use `fit_kwargs` instead.
 
 * **suppress\_convergence\_warnings: bool, optional**
 
