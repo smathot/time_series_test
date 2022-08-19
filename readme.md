@@ -18,9 +18,7 @@ Copyright 2021 - 2022
 
 ## Citation
 
-Mathôt, S., & Vilotijević, A. (in prep). *A Hands-on Guide to Cognitive Pupillometry: from Design to Analysis.*
-
-*This is a work in progress. A preprint of this manuscript will be made available soon.*
+Mathôt, S., & Vilotijević, A. (2022). Methods in cognitive pupillometry: design, preprocessing, and analysis. *Behavior Research Methods*. <https://doi.org/10.1101/2022.02.23.481628>
 
 
 ## About
@@ -171,7 +169,6 @@ Intercept was tested at samples {95} → z = -13.1098, p = 2.892e-39
 color_type[T.proto] was tested at samples {160, 170, 175} → z = -2.0949, p = 0.03618
 set_size was tested at samples {185, 210, 195, 255} → z = 16.2437, p = 2.475e-59
 set_size:color_type[T.proto] was tested at samples {165, 175} → z = 2.5767, p = 0.009974
-None
 ```
 
 
@@ -193,57 +190,96 @@ plt.savefig('img/signal-plot-2.png')
 
 ## Function reference
 
-**<span style="color:purple">time&#95;series&#95;test.find</span>_(dm, formula, groups, re_formula=None, winlen=1, split=4, split_method='interleaved', samples_fe=True, samples_re=True, localizer_re=False, fit_method=None, suppress_convergence_warnings=False, **kwargs)_**
-
+## <span style="color:purple">time\_series\_test.find</span>_(dm, formula, groups, re\_formula=None, winlen=1, split=4, split\_method='interleaved', samples\_fe=True, samples\_re=True, localizer\_re=False, fit\_method=None, suppress\_convergence\_warnings=False, \*\*kwargs)_
 
 Conducts a single linear mixed effects model to a time series, where the
 to-be-tested samples are determined through crossvalidation.
-
 
 This function uses `mixedlm()` from the `statsmodels` package. See the
 statsmodels documentation for a more detailed explanation of the
 parameters.
 
-#### Parameters
-* dm: DataMatrix :  The dataset
-* formula: str :  A formula that describes the dependent variable, which should be the
-	name of a series column in `dm`, and the fixed effects, which should
-	be regular (non-series) columns.
-* groups: str or list of str :  The groups for the random effects, which should be regular (non-series)
-	columns in `dm`.
-* re_formula: str or None :  A formula that describes the random effects, which should be regular
-	(non-series) columns in `dm`.
-* winlen: int, optional :  The number of samples that should be analyzed together, i.e. a 
-	downsampling window to speed up the analysis.
-* split: int, optional :  The number of splits that the analysis should be based on.
-* split_method: str, optional :  If 'interleaved', the data is split in a regular interleaved fashion,
-	such that the first row goes to the first subset, the second row to the
-	second subset, etc. If 'random', the data is split randomly in subsets.
-	Interleaved splitting is deterministic (i.e. it results in the same
-	outcome each time), but random splitting is not.
-* samples_fe: bool, optional :  Indicates whether sample indices are included as an additive factor
-	to the fixed-effects formula. If all splits yielded the same sample
-	index, this is ignored.
-* samples_re: bool, optional :  Indicates whether sample indices are included as an additive factor
-	to the random-effects formula. If all splits yielded the same sample
-	index, this is ignored.
-* localizer_re: bool, optional :  Indicates whether a random effects structure as specified using the
-	`re_formula` keyword should also be used for the localizer models,
-	or only for the final model.
-* fit_method: str, list of str, or None, optional :  The fitting method, which is passed as the `method` keyword to
-	`mixedlm.fit()`. This can be a label or a list of labels, in which
-	case different fitting methods are tried in case of convergence errors.
-* suppress_convergence_warnings: bool, optional :  Installs a warning filter to suppress conververgence (and other)
-	warnings.
-* **kwargs: dict, optional :  Optional keywords to be passed to `mixedlm()`, such as `groups` and
-	`re_formula`.
+### Parameters
 
-#### Returns
-<b><i>dict</i></b>  A dict where keys are effect labels, and values are named tuples
-	of `model`, `samples`, `p`, and `z`.
+* **dm: DataMatrix**
 
-**<span style="color:purple">time&#95;series&#95;test.plot</span>_(dm, dv, hue_factor, results=None, linestyle_factor=None, hues=None, linestyles=None, alpha_level=0.05, annotate_intercept=False, annotation_hues=None, annotation_linestyle=':')_**
+  The dataset
 
+* **formula: str**
+
+  A formula that describes the dependent variable, which should be the
+  name of a series column in `dm`, and the fixed effects, which should
+  be regular (non-series) columns.
+
+* **groups: str or list of str**
+
+  The groups for the random effects, which should be regular (non-series)
+  columns in `dm`.
+
+* **re\_formula: str or None**
+
+  A formula that describes the random effects, which should be regular
+  (non-series) columns in `dm`.
+
+* **winlen: int, optional**
+
+  The number of samples that should be analyzed together, i.e. a 
+  downsampling window to speed up the analysis.
+
+* **split: int, optional**
+
+  The number of splits that the analysis should be based on.
+
+* **split\_method: str, optional**
+
+  If 'interleaved', the data is split in a regular interleaved fashion,
+  such that the first row goes to the first subset, the second row to the
+  second subset, etc. If 'random', the data is split randomly in subsets.
+  Interleaved splitting is deterministic (i.e. it results in the same
+  outcome each time), but random splitting is not.
+
+* **samples\_fe: bool, optional**
+
+  Indicates whether sample indices are included as an additive factor
+  to the fixed-effects formula. If all splits yielded the same sample
+  index, this is ignored.
+
+* **samples\_re: bool, optional**
+
+  Indicates whether sample indices are included as an additive factor
+  to the random-effects formula. If all splits yielded the same sample
+  index, this is ignored.
+
+* **localizer\_re: bool, optional**
+
+  Indicates whether a random effects structure as specified using the
+  `re_formula` keyword should also be used for the localizer models,
+  or only for the final model.
+
+* **fit\_method: str, list of str, or None, optional**
+
+  The fitting method, which is passed as the `method` keyword to
+  `mixedlm.fit()`. This can be a label or a list of labels, in which
+  case different fitting methods are tried in case of convergence errors.
+
+* **suppress\_convergence\_warnings: bool, optional**
+
+  Installs a warning filter to suppress conververgence (and other)
+  warnings.
+
+* **\*\*kwargs: dict, optional**
+
+  Optional keywords to be passed to `mixedlm()`, such as `groups` and
+  `re_formula`.
+
+### Returns
+
+* **_dict_**
+
+  A dict where keys are effect labels, and values are named tuples
+  of `model`, `samples`, `p`, and `z`.
+
+## <span style="color:purple">time\_series\_test.plot</span>_(dm, dv, hue\_factor, results=None, linestyle\_factor=None, hues=None, linestyles=None, alpha\_level=0.05, annotate\_intercept=False, annotation\_hues=None, annotation\_linestyle=':')_
 
 Visualizes a time series, where the signal is plotted as a function of
 sample number on the x-axis. One fixed effect is indicated by the hue
@@ -251,37 +287,75 @@ sample number on the x-axis. One fixed effect is indicated by the hue
 linestyle. If the `results` parameter is used, significant effects are
 annotated in the figure.
 
+### Parameters
 
-#### Parameters
-* dm: DataMatrix :  The dataset
-* dv: str :  The name of the dependent variable, which should be a series column
-	in `dm`.
-* hue_factor: str :  The name of a regular (non-series) column in `dm` that specifies the
-	hue (color) of the lines.
-* results: dict, optional :  A `results` dict as returned by `find()`.
-* linestyle_factor: str, optional :  The name of a regular (non-series) column in `dm` that specifies the
-	linestyle of the lines for a two-factor plot.
-* hues: list or None, optional :  A list of hues to be used as line colors for the first factor.
-* linestyles: list or None, optional :  A list of linestyles to be used for the second factor.
-* alpha_level: float, optional :  The alpha level (maximum p value) to be used for annotating effects
-	in the plot.
-* annotate_intercept: bool, optional :  Specifies whether the intercept should also be annotated along with
-	the fixed effects.
-* annotation_hues: list or None, optional :  A list of hues to be used as line color for the annotations.
-* annotation_linestyle: str, optional :  The linestyle for the annotations.
+* **dm: DataMatrix**
 
-**<span style="color:purple">time&#95;series&#95;test.summarize</span>_(results)_**
+  The dataset
 
+* **dv: str**
+
+  The name of the dependent variable, which should be a series column
+  in `dm`.
+
+* **hue\_factor: str**
+
+  The name of a regular (non-series) column in `dm` that specifies the
+  hue (color) of the lines.
+
+* **results: dict, optional**
+
+  A `results` dict as returned by `find()`.
+
+* **linestyle\_factor: str, optional**
+
+  The name of a regular (non-series) column in `dm` that specifies the
+  linestyle of the lines for a two-factor plot.
+
+* **hues: list or None, optional**
+
+  A list of hues to be used as line colors for the first factor.
+
+* **linestyles: list or None, optional**
+
+  A list of linestyles to be used for the second factor.
+
+* **alpha\_level: float, optional**
+
+  The alpha level (maximum p value) to be used for annotating effects
+  in the plot.
+
+* **annotate\_intercept: bool, optional**
+
+  Specifies whether the intercept should also be annotated along with
+  the fixed effects.
+
+* **annotation\_hues: list or None, optional**
+
+  A list of hues to be used as line color for the annotations.
+
+* **annotation\_linestyle: str, optional**
+
+  The linestyle for the annotations.
+
+## <span style="color:purple">time\_series\_test.summarize</span>_(results, detailed=False)_
 
 Generates a string with a human-readable summary of a results `dict` as
 returned by `find()`.
 
+### Parameters
 
-#### Parameters
-* results: dict :  A `results` dict as returned by `find()`.
+* **results: dict**
 
-#### Returns
-<b><i>str</i></b>
+  A `results` dict as returned by `find()`.
+
+* **detailed: bool, optional**
+
+  Indicates whether model details should be included in the summary.
+
+### Returns
+
+* **_str_**
 
 
 ## License

@@ -18,9 +18,7 @@ Copyright 2021 - 2022
 
 ## Citation
 
-Mathôt, S., & Vilotijević, A. (in prep). *A Hands-on Guide to Cognitive Pupillometry: from Design to Analysis.*
-
-*This is a work in progress. A preprint of this manuscript will be made available soon.*
+Mathôt, S., & Vilotijević, A. (2022). Methods in cognitive pupillometry: design, preprocessing, and analysis. *Behavior Research Methods*. <https://doi.org/10.1101/2022.02.23.481628>
 
 
 ## About
