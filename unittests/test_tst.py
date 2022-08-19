@@ -1,5 +1,8 @@
 import time_series_test as tst
+import os
+import math
 import numpy as np
+from datamatrix import io
 
 
 def _test_indices(fnc):
@@ -21,3 +24,18 @@ def test_interleaved_indices():
 def test_random_indices():
     
     _test_indices(tst._random_indices)
+
+
+def test_find():
+    
+    dm = io.readpickle(
+        '{}/../data/zhou_et_al_2021.pkl'.format(os.path.dirname(__file__)))
+    results = tst.find(dm, 'pupil ~ set_size * color_type',
+                       groups='subject_nr', winlen=50)
+    tst.summarize(results)
+    tst.summarize(results, detailed=True)
+    assert math.isclose(results['Intercept'].p, 3.745313085737814e-33)
+    assert math.isclose(results['color_type[T.proto]'].p, 0.14493344082757134)
+    assert math.isclose(results['set_size'].p, 4.68068027552196e-63)
+    assert math.isclose(results['set_size:color_type[T.proto]'].p,
+                        0.013513332566898819)
