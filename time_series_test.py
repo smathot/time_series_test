@@ -11,7 +11,7 @@ import warnings
 import logging
 from collections import namedtuple
 
-__version__ = '0.4.0'
+__version__ = '0.5.0'
 TEAL = ['#004d40', '#00796b', '#009688', '#4db6ac', '#b2dfdb']
 DEEP_ORANGE = ['#bf360c', '#e64a19', '#ff5722', '#ff8a65', '#ffccbc']
 LINESTYLES = ['-', '--', ':']
@@ -207,22 +207,29 @@ def plot(dm, dv, hue_factor, results=None, linestyle_factor=None, hues=None,
                          loc='upper right')
 
 
-def summarize(results):
+def summarize(results, detailed=False):
     """Generates a string with a human-readable summary of a results `dict` as
     returned by `find()`.
-    
+
     Parameters
     ----------
     results: dict
         A `results` dict as returned by `find()`.
-        
+    detailed: bool, optional
+        Indicates whether model details should be included in the summary.
+
     Returns
     -------
     str
     """
+    summary = []
     for effect, (model, samples, p, z) in results.items():
-        print('{} was tested at samples {} → z = {:.4f}, p = {:.4}'.format(
+        summary.append(
+            '{} was tested at samples {} → z = {:.4f}, p = {:.4}'.format(
                effect, samples, z, p))
+        if detailed:
+            summary += ['', str(model.summary())]
+    return '\n'.join(summary)
 
 
 def _interleaved_indices(length, split):
