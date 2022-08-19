@@ -83,6 +83,7 @@ def find(dm, formula, groups, re_formula=None, winlen=1, split=4,
         A dict where keys are effect labels, and values are named tuples
         of `model`, `samples`, `p`, and `z`.
     """
+    dm = _trim_dm(dm, formula, groups, re_formula)
     with warnings.catch_warnings():
         if suppress_convergence_warnings:
             from statsmodels.tools.sm_exceptions import ConvergenceWarning
@@ -230,6 +231,19 @@ def summarize(results, detailed=False):
         if detailed:
             summary += ['', str(model.summary())]
     return '\n'.join(summary)
+
+
+def _trim_dm(dm, formula, groups, re_formula):
+    """Removes unnecessary columns from the datamatrix"""
+    trimmed_dm = DataMatrix(length=len(dm))
+    for colname in dm.column_names:
+        if colname in formula or colname in groups or re_formula is None or \
+                colname in re_formula:
+            logger.debug('keeping column {}'.format(colname))
+            trimmed_dm[colname] = dm[colname]
+        else:
+            logger.debug('trimming column {}'.format(colname))
+    return trimmed_dm
 
 
 def _interleaved_indices(length, split):
