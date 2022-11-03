@@ -12,7 +12,7 @@ import logging
 import re
 from collections import namedtuple
 
-__version__ = '0.7.0'
+__version__ = '0.7.1'
 DEFAULT_HUE_COLORMAP = 'Dark2'
 DEFAULT_ANNOTATION_COLORMAP = 'brg'
 DEEP_ORANGE = ['#bf360c', '#e64a19', '#ff5722', '#ff8a65', '#ffccbc']
@@ -228,7 +228,7 @@ def plot(dm, dv, hue_factor, results=None, linestyle_factor=None, hues=None,
         if annotation_hues is None:
             annotation_hues = DEFAULT_ANNOTATION_COLORMAP
         if isinstance(annotation_hues, str):
-            hues = _colors(annotation_hues, len(results))
+            annotation_hues = _colors(annotation_hues, len(results))
         i = 0
         for effect, result in results.items():
             if effect == 'Intercept' and not annotate_intercept:
