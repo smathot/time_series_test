@@ -13,7 +13,8 @@ import re
 from collections import namedtuple
 
 __version__ = '0.6.0'
-TEAL = ['#004d40', '#00796b', '#009688', '#4db6ac', '#b2dfdb']
+DEFAULT_HUE_COLORMAP = 'Dark2'
+DEFAULT_ANNOTATION_COLORMAP = 'brg'
 DEEP_ORANGE = ['#bf360c', '#e64a19', '#ff5722', '#ff8a65', '#ffccbc']
 LINESTYLES = ['-', '--', ':']
 logger = logging.getLogger('time_series_test')
@@ -198,8 +199,9 @@ def plot(dm, dv, hue_factor, results=None, linestyle_factor=None, hues=None,
     linestyle_factor: str, optional
         The name of a regular (non-series) column in `dm` that specifies the
         linestyle of the lines for a two-factor plot.
-    hues: list or None, optional
-        A list of hues to be used as line colors for the first factor.
+    hues: str, list, or None, optional
+        The name of a matplotlib colormap or a list of hues to be used as line
+        colors for the hue factor.
     linestyles: list or None, optional
         A list of linestyles to be used for the second factor.
     alpha_level: float, optional
@@ -208,20 +210,25 @@ def plot(dm, dv, hue_factor, results=None, linestyle_factor=None, hues=None,
     annotate_intercept: bool, optional
         Specifies whether the intercept should also be annotated along with
         the fixed effects.
-    annotation_hues: list or None, optional
-        A list of hues to be used as line color for the annotations.
+    annotation_hues: str, list, or None, optional
+        The name of a matplotlib colormap or a list of hues to be used for the
+        annotations if `results` is provided.
     annotation_linestyle: str, optional
         The linestyle for the annotations.
     """
     if hues is None:
-        hues = TEAL
-    if annotation_hues is None:
-        annotation_hues = DEEP_ORANGE
+        hues = DEFAULT_HUE_COLORMAP
+    if isinstance(hues, str):
+        hues = _colors(hues, dm[hue_factor].count)
     if linestyles is None:
         linestyles = LINESTYLES
     # Plot the annotations
     annotation_elements = []
     if results is not None:
+        if annotation_hues is None:
+            annotation_hues = DEFAULT_ANNOTATION_COLORMAP
+        if isinstance(annotation_hues, str):
+            hues = _colors(annotation_hues, len(results))
         i = 0
         for effect, result in results.items():
             if effect == 'Intercept' and not annotate_intercept:
@@ -429,3 +436,8 @@ def _terms(formula, **kwargs):
     if kwargs.get('re_formula', None) is not None:
         terms += _split_terms(kwargs['re_formula'])
     return terms
+
+
+def _colors(colormap, n):
+    cm = plt.colormaps[colormap]
+    return [cm(int(hue)) for hue in np.linspace(0, cm.N, n)]
