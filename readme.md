@@ -181,6 +181,7 @@ We can pass the `results` to `plot()` to visualize the results:
 
 
 ```python
+plt.clf()
 tst.plot(dm, dv='pupil', hue_factor='set_size', linestyle_factor='color_type',
          results=results)
 plt.savefig('img/signal-plot-2.png')
@@ -348,9 +349,10 @@ annotated in the figure.
   The name of a regular (non-series) column in `dm` that specifies the
   linestyle of the lines for a two-factor plot.
 
-* **hues: list or None, optional**
+* **hues: str, list, or None, optional**
 
-  A list of hues to be used as line colors for the first factor.
+  The name of a matplotlib colormap or a list of hues to be used as line
+  colors for the hue factor.
 
 * **linestyles: list or None, optional**
 
@@ -366,9 +368,10 @@ annotated in the figure.
   Specifies whether the intercept should also be annotated along with
   the fixed effects.
 
-* **annotation\_hues: list or None, optional**
+* **annotation\_hues: str, list, or None, optional**
 
-  A list of hues to be used as line color for the annotations.
+  The name of a matplotlib colormap or a list of hues to be used for the
+  annotations if `results` is provided.
 
 * **annotation\_linestyle: str, optional**
 

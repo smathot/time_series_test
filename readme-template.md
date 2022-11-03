@@ -129,6 +129,7 @@ print(tst.summarize(results))
 We can pass the `results` to `plot()` to visualize the results:
 
 ```python
+plt.clf()
 tst.plot(dm, dv='pupil', hue_factor='set_size', linestyle_factor='color_type',
          results=results)
 plt.savefig('img/signal-plot-2.png')
