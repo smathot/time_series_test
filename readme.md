@@ -286,6 +286,35 @@ parameters.
   A dict where keys are effect labels, and values are named tuples
   of `model`, `samples`, `p`, and `z`.
 
+## <span style="color:purple">time\_series\_test.lmer\_series</span>_(dm, formula, winlen=1, fit\_kwargs={}, \*\*kwargs)_
+
+Performs a sample-by-sample linear-mixed-effects analysis.
+
+### Parameters
+
+* **dm: DataMatrix**
+
+* **formula: str**
+
+* **winlen: int, optional**
+
+* **fit\_kwargs: dict, optional**
+
+* **\*\*kwargs: dict, optional**
+
+### Returns
+
+* **_DataMatrix_**
+
+  A DataMatrix with one row per effect, including the intercept, and
+  three series columns with the same depth as the dependent measure
+  specified in the formula:
+
+  - `est`: the slope
+  - `p`: the p value
+  - `z`: the z value
+  - `se`: the standard error
+
 ## <span style="color:purple">time\_series\_test.plot</span>_(dm, dv, hue\_factor, results=None, linestyle\_factor=None, hues=None, linestyles=None, alpha\_level=0.05, annotate\_intercept=False, annotation\_hues=None, annotation\_linestyle=':')_
 
 Visualizes a time series, where the signal is plotted as a function of
