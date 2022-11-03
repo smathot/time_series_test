@@ -12,7 +12,7 @@ import logging
 import re
 from collections import namedtuple
 
-__version__ = '0.6.0'
+__version__ = '0.7.0'
 DEFAULT_HUE_COLORMAP = 'Dark2'
 DEFAULT_ANNOTATION_COLORMAP = 'brg'
 DEEP_ORANGE = ['#bf360c', '#e64a19', '#ff5722', '#ff8a65', '#ffccbc']
