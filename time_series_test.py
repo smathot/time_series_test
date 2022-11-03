@@ -9,6 +9,7 @@ from matplotlib.lines import Line2D
 import statsmodels.formula.api as smf
 import warnings
 import logging
+import re
 from collections import namedtuple
 
 __version__ = '0.6.0'
@@ -109,6 +110,68 @@ def find(dm, formula, groups, re_formula=None, winlen=1, split=4,
                                     winlen=winlen, samples_fe=samples_fe,
                                     fit_kwargs=fit_kwargs, samples_re=samples_re,
                                     **kwargs)
+
+
+def lmer_series(dm, formula, winlen=1, fit_kwargs={}, **kwargs):
+    """Performs a sample-by-sample linear-mixed-effects analysis.
+    
+    Parameters
+    ----------
+    dm: DataMatrix
+    formula: str
+    winlen: int, optional
+    fit_kwargs: dict, optional
+    **kwargs: dict, optional
+    
+    Returns
+    -------
+    DataMatrix
+        A DataMatrix with one row per effect, including the intercept, and
+        three series columns with the same depth as the dependent measure
+        specified in the formula:
+        
+        - `est`: the slope
+        - `p`: the p value
+        - `z`: the z value
+        - `se`: the standard error
+    """
+    terms = _terms(formula, **kwargs)
+    # For efficient memory use, we first strip all columns except the relevant
+    # ones from the datamatrix. We also create an ever leaner copy that doesn't
+    # contain the dependent variable, which is a series column. This leaner
+    # copy will be filled in with a single (non-series) column for the dv for
+    # each iteration of the loop.
+    wm = dm[terms]
+    wm_no_dv = dm[terms[1:]]
+    dv = terms[0]
+    depth = dm[dv].depth
+    rm = None
+    for i in range(0, depth, winlen):
+        logger.debug('sample {}'.format(i))
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            wm_no_dv[dv] = srs.reduce(
+                srs.window(wm[dv], start=i, end=i+winlen))
+        try:
+            lm = smf.mixedlm(formula, wm_no_dv[dv] != np.nan, **kwargs).fit(
+                **fit_kwargs)
+        except np.linalg.LinAlgError as e:
+            warnings.warn('failed to fit mode: {}'.format(e))
+            continue
+        length = len(lm.model.exog_names)
+        if rm is None:
+            rm = DataMatrix(length=length)
+            rm.effect = lm.model.exog_names
+            rm.p = SeriesColumn(depth=depth)
+            rm.z = SeriesColumn(depth=depth)
+            rm.est = SeriesColumn(depth=depth)
+            rm.se = SeriesColumn(depth=depth)
+        for sample in range(i, min(depth, i + winlen)):
+            rm.p[:, sample] = list(lm.pvalues[:length])
+            rm.z[:, sample] = list(lm.tvalues[:length])
+            rm.est[:, sample] = list(lm.params[:length])
+            rm.se[:, sample] = list(lm.bse[:length])
+    return rm
 
 
 def plot(dm, dv, hue_factor, results=None, linestyle_factor=None, hues=None,
@@ -295,7 +358,7 @@ def _lmer_run_localizer(dm, formula, groups, re_formula=None, winlen=1,
     for test_indices, ref_indices in split_indices:
         logger.debug('test size: {}, reference size: {}'.format(
             len(test_indices), len(ref_indices)))
-        lm = _lmer_series(dm[ref_indices], formula, winlen=winlen,
+        lm = lmer_series(dm[ref_indices], formula, winlen=winlen,
                          groups=groups, re_formula=re_formula,
                          fit_kwargs=fit_kwargs, **kwargs)
         if result_dm is None:
@@ -310,9 +373,9 @@ def _lmer_run_localizer(dm, formula, groups, re_formula=None, winlen=1,
 def _lmer_test_localizer(dm, formula, groups, re_formula=None, winlen=1,
                          target_col='__lmer_localizer__', samples_fe=False,
                          samples_re=False, fit_kwargs={}):
-    test_dm = dm[:]
-    dv = formula.split()[0]
-    del test_dm[dv]
+    terms = _terms(formula, groups=groups, re_formula=re_formula)
+    test_dm = dm[terms[1:]]
+    dv = terms[0]
     signal = dm[dv]._seq
     indices = np.array(dm[target_col]._seq, dtype=int)
     results = {}
@@ -351,34 +414,18 @@ def _lmer_test_localizer(dm, formula, groups, re_formula=None, winlen=1,
     return results
 
 
-def _lmer_series(dm, formula, winlen=1, fit_kwargs={}, **kwargs):
+def _split_terms(formula):
+    """Extracts all terms from a formula."""
+    return [term for term in re.split('[ ~+%*]', formula) if term.strip()]
     
-    col = formula.split()[0]
-    depth = dm[col].depth
-    rm = None
-    for i in range(0, depth, winlen):
-        logger.debug('sample {}'.format(i))
-        wm = dm[:]
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore')
-            wm[col] = srs.reduce(srs.window(wm[col], start=i, end=i+winlen))
-        wm = wm[col] != np.nan
-        try:
-            lm = smf.mixedlm(formula, wm, **kwargs).fit(**fit_kwargs)
-        except np.linalg.LinAlgError as e:
-            warnings.warn('failed to fit mode: {}'.format(e))
-            continue
-        length = len(lm.model.exog_names)
-        if rm is None:
-            rm = DataMatrix(length=length)
-            rm.effect = lm.model.exog_names
-            rm.p = SeriesColumn(depth=depth)
-            rm.z = SeriesColumn(depth=depth)
-            rm.est = SeriesColumn(depth=depth)
-            rm.se = SeriesColumn(depth=depth)
-        for sample in range(i, min(depth, i + winlen)):
-            rm.p[:, sample] = list(lm.pvalues[:length])
-            rm.z[:, sample] = list(lm.tvalues[:length])
-            rm.est[:, sample] = list(lm.params[:length])
-            rm.se[:, sample] = list(lm.bse[:length])
-    return rm
+
+def _terms(formula, **kwargs):
+    """Extracts all terms from a formula, including those specified in groups
+    and re_formula, which are optionally specified through **kwargs
+    """
+    terms = _split_terms(formula)
+    if 'groups' in kwargs:
+        terms.append(kwargs['groups'])
+    if kwargs.get('re_formula', None) is not None:
+        terms += _split_terms(kwargs['re_formula'])
+    return terms
