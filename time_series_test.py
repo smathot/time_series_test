@@ -12,7 +12,7 @@ import logging
 import re
 from collections import namedtuple
 
-__version__ = '0.7.1'
+__version__ = '0.7.2'
 DEFAULT_HUE_COLORMAP = 'Dark2'
 DEFAULT_ANNOTATION_COLORMAP = 'brg'
 DEEP_ORANGE = ['#bf360c', '#e64a19', '#ff5722', '#ff8a65', '#ffccbc']
@@ -94,7 +94,6 @@ def find(dm, formula, groups, re_formula=None, winlen=1, split=4,
             'The fit_method keyword is deprecated. Use fit_kwargs instead',
             DeprecationWarning)
         fit_kwargs['method'] = fit_method
-        print('xx')
     dm = _trim_dm(dm, formula, groups, re_formula)
     with warnings.catch_warnings():
         if suppress_convergence_warnings:
@@ -216,6 +215,12 @@ def plot(dm, dv, hue_factor, results=None, linestyle_factor=None, hues=None,
     annotation_linestyle: str, optional
         The linestyle for the annotations.
     """
+    cols = [dv]
+    if hue_factor is not None:
+        cols.append(hue_factor)
+    if linestyle_factor is not None:
+        cols.append(linestyle_factor)
+    dm = dm[cols]
     if hues is None:
         hues = DEFAULT_HUE_COLORMAP
     if isinstance(hues, str):
