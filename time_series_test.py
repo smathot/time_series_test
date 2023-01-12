@@ -12,7 +12,7 @@ import logging
 import re
 from collections import namedtuple
 
-__version__ = '0.7.2'
+__version__ = '0.9.0'
 DEFAULT_HUE_COLORMAP = 'Dark2'
 DEFAULT_ANNOTATION_COLORMAP = 'brg'
 DEEP_ORANGE = ['#bf360c', '#e64a19', '#ff5722', '#ff8a65', '#ffccbc']
@@ -113,7 +113,8 @@ def find(dm, formula, groups, re_formula=None, winlen=1, split=4,
 
 
 def lmer_series(dm, formula, winlen=1, fit_kwargs={}, **kwargs):
-    """Performs a sample-by-sample linear-mixed-effects analysis.
+    """Performs a sample-by-sample linear-mixed-effects analysis. See `find()`
+    for an explanation of the arguments.
     
     Parameters
     ----------
@@ -174,9 +175,86 @@ def lmer_series(dm, formula, winlen=1, fit_kwargs={}, **kwargs):
     return rm
 
 
+def lmer_permutation_test(dm, formula, groups, re_formula=None, winlen=1,
+                          suppress_convergence_warnings=False, fit_kwargs={},
+                          iterations=1000, **kwargs):
+    """Performs a cluster-based permutation test based on sample-by-sample
+    linear-mixed-effects analyses. The permutation test identifies clusters
+    based on p < .05 and uses the summed z-values of the clusters as test
+    statistic.
+    
+    *Warning:* This is generally an extremely time-consuming analysis because
+    it requires thousands of lmers to be run.
+    
+    See `find()` for an explanation of the arguments.
+    
+    Parameters
+    ----------
+    dm: DataMatrix
+    formula: str
+    groups: str
+    re_formula: str or None, optional
+    winlen: int, optional
+    suppress_convergence_warnings: bool, optional
+    fit_kwargs: dict, optional
+    iterations: int, optional
+        The number of permutations to run.
+    **kwargs: dict, optional
+    
+    Returns
+    -------
+    dict
+        A dict with effects as keys and p-values as values.
+    """
+    dm = _trim_dm(dm, formula, groups, re_formula)
+    terms = _terms(formula, **kwargs)
+    dv = terms[0]
+    # First conduct a regular sample-by-sample lme, and get the size of the
+    # largest clusters for each effect
+    with warnings.catch_warnings():
+        if suppress_convergence_warnings:
+            from statsmodels.tools.sm_exceptions import ConvergenceWarning
+            warnings.simplefilter(action='ignore', category=ConvergenceWarning)
+        rm_obs = lmer_series(dm, formula=formula, groups=groups,
+                             re_formula=re_formula, winlen=winlen,
+                             fit_kwargs=fit_kwargs, **kwargs)
+    cluster_obs = _max_cluster_size(rm_obs)
+    cluster_hits = {effect: 0 for effect in cluster_obs}
+    logger.info(f'observed clusters: {cluster_obs}')
+    # Now run through all iterations
+    for i in range(iterations):
+        logger.info(f'start of iteration {i}')
+        # Permute the order of the terms while keeping groups intact
+        for group, gdm in ops.split(dm[groups]):
+            for term in terms:
+                dm[term][gdm] = ops.shuffle(gdm[term])
+        # Conduct a sample-by-sample lme on the permuted data, and get the
+        # largest (spurious) clusters
+        with warnings.catch_warnings():
+            if suppress_convergence_warnings:
+                from statsmodels.tools.sm_exceptions import ConvergenceWarning
+                warnings.simplefilter(action='ignore', category=ConvergenceWarning)
+            rm_it = lmer_series(dm, formula=formula, groups=groups,
+                                re_formula=re_formula, winlen=winlen,
+                                fit_kwargs=fit_kwargs, **kwargs)
+        cluster_it = _max_cluster_size(rm_it)
+        logger.info(f'observed clusters: {cluster_obs}')
+        logger.info(f'permuted clusters: {cluster_it}')
+        # For each effect, when the observed cluster size exceeds the spurious
+        # cluster size, consider this a hit
+        for effect in cluster_hits:
+            if cluster_obs[effect] > cluster_it[effect]:
+                logger.info(f'hit for {effect}')
+                cluster_hits[effect] += 1
+        logger.info(f'hits after iteration {i}: {cluster_hits}')
+    return {effect: 1 - (hits / iterations)
+            for effect, hits in cluster_hits.items()}
+
+
 def plot(dm, dv, hue_factor, results=None, linestyle_factor=None, hues=None,
          linestyles=None, alpha_level=.05, annotate_intercept=False,
-         annotation_hues=None, annotation_linestyle=':'):
+         annotation_hues=None, annotation_linestyle=':', legend_kwargs=None,
+         annotation_legend_kwargs=None):
     """Visualizes a time series, where the signal is plotted as a function of
     sample number on the x-axis. One fixed effect is indicated by the hue
     (color) of the lines. An optional second fixed effect is indicated by the
@@ -214,6 +292,11 @@ def plot(dm, dv, hue_factor, results=None, linestyle_factor=None, hues=None,
         annotations if `results` is provided.
     annotation_linestyle: str, optional
         The linestyle for the annotations.
+    legend_kwargs: None or dict, optional
+        Optional keywords to be passed to `plt.legend()` for the factor legend.
+    annotation_legend_kwargs: None or dict, optional
+        Optional keywords to be passed to `plt.legend()` for the annotation
+        legend.
     """
     cols = [dv]
     if hue_factor is not None:
@@ -273,15 +356,22 @@ def plot(dm, dv, hue_factor, results=None, linestyle_factor=None, hues=None,
                 plt.plot(y, color=hue, linestyle=linestyle)
     # Implement legend
     if annotation_elements:
-        plt.gca().add_artist(plt.legend(loc='lower right'))
+        if annotation_legend_kwargs is not None:
+            annotation_legend = plt.legend(**annotation_legend_kwargs)
+        else:
+            annotation_legend = plt.legend(loc='lower right')
+        plt.gca().add_artist(annotation_legend)
     hue_legend = [
         Line2D([0], [0], color=hues[i1 % len(hues)], label=f1)
         for i1, f1 in enumerate(dm[hue_factor].unique)
     ]
-    legend = plt.gca().legend(
-        handles=hue_legend,
-        title=hue_factor,
-        loc='upper left')
+    if legend_kwargs is not None:
+        legend = plt.gca().legend(handles=hue_legend, **legend_kwargs)
+    else:
+        legend = plt.gca().legend(
+            handles=hue_legend,
+            title=hue_factor,
+            loc='upper left')
     if linestyle_factor is not None:
         plt.gca().add_artist(legend)
         linestyle_legend = [
@@ -446,3 +536,26 @@ def _terms(formula, **kwargs):
 def _colors(colormap, n):
     cm = plt.colormaps[colormap]
     return [cm(int(hue)) for hue in np.linspace(0, cm.N, n)]
+
+
+def _max_cluster_size(rm):
+    """Extracts the largest clusters based on a p-threshold of .05 based on a
+    datamatrix as returned by lmer_series(). Returns a dict with effects as
+    keys and absolute summed z-values for the largest clusters as values.
+    """
+    max_cluster_size = {}
+    for row in rm:
+        pi = None
+        max_cluster_size[row.effect] = 0
+        for i in np.where(row.p < .05)[0]:
+            if i - 1 != pi:
+                if pi is not None:
+                    if abs(z_sum) > max_cluster_size[row.effect]:
+                        max_cluster_size[row.effect] = abs(z_sum)
+                z_sum = 0
+            z_sum += row.z[i]
+            pi = i
+        if pi is not None:
+            if abs(z_sum) > max_cluster_size[row.effect]:
+                max_cluster_size[row.effect] = abs(z_sum)
+    return max_cluster_size
