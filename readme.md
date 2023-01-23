@@ -52,7 +52,7 @@ This packages also provides a function (`plot()`) to visualize time-series data 
 
 ### When to use `lmer_permutation_test()`?
 
-`lmer_permutation_test()` implements a fairly standard cluster-based permutation test, which differs from most other implementations in that it relies on linear mixed-effects modeling to calculate the test statistics. Therefore, this function tends to be extremely computationally intensive. Its main advantage of `find()` is that it is also valid for data with multiple components, such as event-related potentials (ERPs).
+`lmer_permutation_test()` implements a fairly standard cluster-based permutation test, which differs from most other implementations in that it relies on linear mixed-effects modeling to calculate the test statistics. Therefore, this function tends to be extremely computationally intensive, but should also be more sensitive than cluster-based permutation tests that are based on average data. Its main advantage as compared to `lmer_crossvalidation_test()` is that it is also valid for data with multiple components, such as event-related potentials (ERPs).
 
 
 ## Installation
@@ -202,7 +202,7 @@ plt.savefig('img/signal-plot-2.png')
 
 ## Function reference
 
-## <span style="color:purple">time\_series\_test.find</span>_(dm, formula, groups, re\_formula=None, winlen=1, split=4, split\_method='interleaved', samples\_fe=True, samples\_re=True, localizer\_re=False, fit\_method=None, suppress\_convergence\_warnings=False, fit\_kwargs=None, \*\*kwargs)_
+## <span style="color:purple">time\_series\_test.lmer\_crossvalidation\_test</span>_(dm, formula, groups, re\_formula=None, winlen=1, split=4, split\_method='interleaved', samples\_fe=True, samples\_re=True, localizer\_re=False, fit\_method=None, suppress\_convergence\_warnings=False, fit\_kwargs=None, \*\*kwargs)_
 
 Conducts a single linear mixed effects model to a time series, where the
 to-be-tested samples are determined through crossvalidation.
@@ -295,36 +295,6 @@ parameters.
   A dict where keys are effect labels, and values are named tuples
   of `model`, `samples`, `p`, and `z`.
 
-## <span style="color:purple">time\_series\_test.lmer\_series</span>_(dm, formula, winlen=1, fit\_kwargs={}, \*\*kwargs)_
-
-Performs a sample-by-sample linear-mixed-effects analysis. See `lmer_crossvalidation()`
-for an explanation of the arguments.
-
-### Parameters
-
-* **dm: DataMatrix**
-
-* **formula: str**
-
-* **winlen: int, optional**
-
-* **fit\_kwargs: dict, optional**
-
-* **\*\*kwargs: dict, optional**
-
-### Returns
-
-* **_DataMatrix_**
-
-  A DataMatrix with one row per effect, including the intercept, and
-  three series columns with the same depth as the dependent measure
-  specified in the formula:
-
-  - `est`: the slope
-  - `p`: the p value
-  - `z`: the z value
-  - `se`: the standard error
-
 ## <span style="color:purple">time\_series\_test.lmer\_permutation\_test</span>_(dm, formula, groups, re\_formula=None, winlen=1, suppress\_convergence\_warnings=False, fit\_kwargs={}, iterations=1000, cluster\_p\_threshold=0.05, \*\*kwargs)_
 
 Performs a cluster-based permutation test based on sample-by-sample
@@ -374,6 +344,36 @@ See `lmer_crossvalidation()` for an explanation of the arguments.
   A dict with effects as keys and lists of clusters defined by
   (start, end, z-sum, hit proportion) tuples. The p-value is
   1 - hit proportion.
+
+## <span style="color:purple">time\_series\_test.lmer\_series</span>_(dm, formula, winlen=1, fit\_kwargs={}, \*\*kwargs)_
+
+Performs a sample-by-sample linear-mixed-effects analysis. See `lmer_crossvalidation()`
+for an explanation of the arguments.
+
+### Parameters
+
+* **dm: DataMatrix**
+
+* **formula: str**
+
+* **winlen: int, optional**
+
+* **fit\_kwargs: dict, optional**
+
+* **\*\*kwargs: dict, optional**
+
+### Returns
+
+* **_DataMatrix_**
+
+  A DataMatrix with one row per effect, including the intercept, and
+  three series columns with the same depth as the dependent measure
+  specified in the formula:
+
+  - `est`: the slope
+  - `p`: the p value
+  - `z`: the z value
+  - `se`: the standard error
 
 ## <span style="color:purple">time\_series\_test.plot</span>_(dm, dv, hue\_factor, results=None, linestyle\_factor=None, hues=None, linestyles=None, alpha\_level=0.05, annotate\_intercept=False, annotation\_hues=None, annotation\_linestyle=':', legend\_kwargs=None, annotation\_legend\_kwargs=None)_
 
