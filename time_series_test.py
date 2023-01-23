@@ -12,7 +12,7 @@ import logging
 import re
 from collections import namedtuple
 
-__version__ = '0.9.0'
+__version__ = '0.9.1'
 DEFAULT_HUE_COLORMAP = 'Dark2'
 DEFAULT_ANNOTATION_COLORMAP = 'brg'
 DEEP_ORANGE = ['#bf360c', '#e64a19', '#ff5722', '#ff8a65', '#ffccbc']
@@ -20,10 +20,10 @@ LINESTYLES = ['-', '--', ':']
 logger = logging.getLogger('time_series_test')
 
 
-def find(dm, formula, groups, re_formula=None, winlen=1, split=4,
-         split_method='interleaved', samples_fe=True, samples_re=True,
-         localizer_re=False, fit_method=None,
-         suppress_convergence_warnings=False, fit_kwargs=None, **kwargs):
+def lmer_crossvalidation_test(dm, formula, groups, re_formula=None, winlen=1,
+        split=4, split_method='interleaved', samples_fe=True, samples_re=True,
+        localizer_re=False, fit_method=None,
+        suppress_convergence_warnings=False, fit_kwargs=None, **kwargs):
     """Conducts a single linear mixed effects model to a time series, where the
     to-be-tested samples are determined through crossvalidation.
     
@@ -113,7 +113,7 @@ def find(dm, formula, groups, re_formula=None, winlen=1, split=4,
 
 
 def lmer_series(dm, formula, winlen=1, fit_kwargs={}, **kwargs):
-    """Performs a sample-by-sample linear-mixed-effects analysis. See `find()`
+    """Performs a sample-by-sample linear-mixed-effects analysis. See `lmer_crossvalidation()`
     for an explanation of the arguments.
     
     Parameters
@@ -177,16 +177,20 @@ def lmer_series(dm, formula, winlen=1, fit_kwargs={}, **kwargs):
 
 def lmer_permutation_test(dm, formula, groups, re_formula=None, winlen=1,
                           suppress_convergence_warnings=False, fit_kwargs={},
-                          iterations=1000, **kwargs):
+                          iterations=1000, cluster_p_threshold=.05, **kwargs):
     """Performs a cluster-based permutation test based on sample-by-sample
     linear-mixed-effects analyses. The permutation test identifies clusters
-    based on p < .05 and uses the summed z-values of the clusters as test
-    statistic.
+    based on p-value threshold and uses the absolute of the summed z-values of
+    the clusters as test statistic.
+    
+    If no clusters reach the threshold, the test is skipped right away. The
+    Intercept is ignored for this criterion, because the intercept usually has
+    significant clusters that we're not interested in.
     
     *Warning:* This is generally an extremely time-consuming analysis because
     it requires thousands of lmers to be run.
     
-    See `find()` for an explanation of the arguments.
+    See `lmer_crossvalidation()` for an explanation of the arguments.
     
     Parameters
     ----------
@@ -199,12 +203,16 @@ def lmer_permutation_test(dm, formula, groups, re_formula=None, winlen=1,
     fit_kwargs: dict, optional
     iterations: int, optional
         The number of permutations to run.
+    cluster_p_threshold: float or None, optional
+        The maximum p-value for a sample to be considered part of a cluster.
     **kwargs: dict, optional
     
     Returns
     -------
     dict
-        A dict with effects as keys and p-values as values.
+        A dict with effects as keys and lists of clusters defined by
+        (start, end, z-sum, hit proportion) tuples. The p-value is
+        1 - hit proportion.
     """
     dm = _trim_dm(dm, formula, groups, re_formula)
     terms = _terms(formula, **kwargs)
@@ -218,11 +226,21 @@ def lmer_permutation_test(dm, formula, groups, re_formula=None, winlen=1,
         rm_obs = lmer_series(dm, formula=formula, groups=groups,
                              re_formula=re_formula, winlen=winlen,
                              fit_kwargs=fit_kwargs, **kwargs)
-    cluster_obs = _max_cluster_size(rm_obs)
-    cluster_hits = {effect: 0 for effect in cluster_obs}
+    cluster_obs = _clusters(rm_obs, cluster_p_threshold)
+    # This is where we will store the hits for each of the observed clusters
+    cluster_hits = {effect: [0] * len(clusters)
+                    for effect, clusters in cluster_obs.items()}
     logger.info(f'observed clusters: {cluster_obs}')
     # Now run through all iterations
     for i in range(iterations):
+        # If there are no significant clusters, we'll skip the test altogether
+        # to save time. The Intercept doesn't count here, because the intercept
+        # generally does have significant clusters but we're not interested in
+        # those.
+        if not any(clusters for effect, clusters in cluster_obs.items()
+                   if effect != 'Intercept'):
+            logger.info(f'no clusters reach threshold, skipping test')
+            break
         logger.info(f'start of iteration {i}')
         # Permute the order of the terms while keeping groups intact
         for group, gdm in ops.split(dm[groups]):
@@ -237,18 +255,33 @@ def lmer_permutation_test(dm, formula, groups, re_formula=None, winlen=1,
             rm_it = lmer_series(dm, formula=formula, groups=groups,
                                 re_formula=re_formula, winlen=winlen,
                                 fit_kwargs=fit_kwargs, **kwargs)
-        cluster_it = _max_cluster_size(rm_it)
+        cluster_it = _clusters(rm_it, cluster_p_threshold)
         logger.info(f'observed clusters: {cluster_obs}')
         logger.info(f'permuted clusters: {cluster_it}')
         # For each effect, when the observed cluster size exceeds the spurious
         # cluster size, consider this a hit
         for effect in cluster_hits:
-            if cluster_obs[effect] > cluster_it[effect]:
-                logger.info(f'hit for {effect}')
-                cluster_hits[effect] += 1
+            if not cluster_it[effect]:
+                zsum_it = 0
+            else:
+                # Get the biggers spurious cluster
+                _, _, zsum_it = cluster_it[effect][0]
+            logger.info(f'permutation zsum for {effect} = {zsum_it:.2f}')
+            for j, (_, _, zsum_obs) in enumerate(cluster_obs[effect]):
+                if zsum_obs > zsum_it:
+                    logger.info(f'hit for {effect} cluster {j} ({zsum_obs:.2f} > {zsum_it:.2f})')
+                    cluster_hits[effect][j] += 1
+                else:
+                    logger.info(f'miss for {effect} cluster {j} ({zsum_obs:.2f} <= {zsum_it:.2f})')
         logger.info(f'hits after iteration {i}: {cluster_hits}')
-    return {effect: 1 - (hits / iterations)
-            for effect, hits in cluster_hits.items()}
+    # Return a dict with a list of (start, end, zsum, pvalue) tuples
+    cluster_pvalues = {}
+    for effect, hitlist in cluster_hits.items():
+        cluster_pvalues[effect] = []
+        for hits, (start, end, zsum) in zip(hitlist, cluster_obs[effect]):
+            cluster_pvalues[effect].append(
+                (start, end, zsum, hits / iterations))
+    return cluster_pvalues
 
 
 def plot(dm, dv, hue_factor, results=None, linestyle_factor=None, hues=None,
@@ -272,7 +305,7 @@ def plot(dm, dv, hue_factor, results=None, linestyle_factor=None, hues=None,
         The name of a regular (non-series) column in `dm` that specifies the
         hue (color) of the lines.
     results: dict, optional
-        A `results` dict as returned by `find()`.
+        A `results` dict as returned by `lmer_crossvalidation()`.
     linestyle_factor: str, optional
         The name of a regular (non-series) column in `dm` that specifies the
         linestyle of the lines for a two-factor plot.
@@ -385,12 +418,12 @@ def plot(dm, dv, hue_factor, results=None, linestyle_factor=None, hues=None,
 
 def summarize(results, detailed=False):
     """Generates a string with a human-readable summary of a results `dict` as
-    returned by `find()`.
+    returned by `lmer_crossvalidation()`.
 
     Parameters
     ----------
     results: dict
-        A `results` dict as returned by `find()`.
+        A `results` dict as returned by `lmer_crossvalidation()`.
     detailed: bool, optional
         Indicates whether model details should be included in the summary.
 
@@ -538,24 +571,33 @@ def _colors(colormap, n):
     return [cm(int(hue)) for hue in np.linspace(0, cm.N, n)]
 
 
-def _max_cluster_size(rm):
+def _clusters(rm, cluster_p_threshold):
     """Extracts the largest clusters based on a p-threshold of .05 based on a
     datamatrix as returned by lmer_series(). Returns a dict with effects as
-    keys and absolute summed z-values for the largest clusters as values.
+    keys and a list of (start, end, zsum) tuples as values. The list is sorted
+    by the zsum.
     """
-    max_cluster_size = {}
+    clusters = {}
     for row in rm:
         pi = None
-        max_cluster_size[row.effect] = 0
-        for i in np.where(row.p < .05)[0]:
+        clusters[row.effect] = []
+        # Loop through all indices that are part of clusters
+        for i in np.where(row.p < cluster_p_threshold)[0]:
+            # We're entering a new cluster
             if i - 1 != pi:
+                # Store previous cluster
                 if pi is not None:
-                    if abs(z_sum) > max_cluster_size[row.effect]:
-                        max_cluster_size[row.effect] = abs(z_sum)
+                    clusters[row.effect].append((start, i, abs(z_sum)))
+                start = i
                 z_sum = 0
             z_sum += row.z[i]
             pi = i
         if pi is not None:
-            if abs(z_sum) > max_cluster_size[row.effect]:
-                max_cluster_size[row.effect] = abs(z_sum)
-    return max_cluster_size
+            # Store last cluster
+            clusters[row.effect].append((start, i, abs(z_sum)))
+        clusters[row.effect].sort(key=lambda i: -i[2])
+    return clusters
+
+
+# alias for backwards compatibility
+find = lmer_crossvalidation_test

@@ -1,9 +1,9 @@
 # Time Series Test
 
-*A statistical test and plotting function for time-series data in general, and data from cognitive-pupillometry experiments in particular. Based on linear mixed effects modeling and crossvalidation.*
+*Statistical testing and plotting functions for time-series data in general, and data from cognitive-pupillometry experiments in particular. Based on linear mixed effects modeling, crossvalidation, and cluster-based permutation testing.*
 
 Sebastiaan Mathôt (@smathot) <br />
-Copyright 2021 - 2022
+Copyright 2021 - 2023
 
 [![Publish to PyPi](https://github.com/smathot/time_series_test/actions/workflows/publish-package.yaml/badge.svg)](https://github.com/smathot/time_series_test/actions/workflows/publish-package.yaml)
 [![Tests](https://github.com/smathot/time_series_test/actions/workflows/run-unittests.yaml/badge.svg)](https://github.com/smathot/time_series_test/actions/workflows/run-unittests.yaml)
@@ -26,7 +26,12 @@ Mathôt, S., & Vilotijević, A. (2022). Methods in cognitive pupillometry: desig
 
 ## About
 
-In general terms, this package implements a statistical test for a specific-yet-common question when analyzing time-series data:
+This library provides two main functions for statistical testing of time-series data: `lmer_crossvalidation_test()` and `lmer_permutation_test()`. For a detailed description, see the manuscript above, but below a short introduction to both functions with their respective advantages and disadavantages.
+
+
+### When to use crossvalidation?
+
+In general terms, `lmer_crossvalidation_test()` implements a statistical test for a specific-yet-common question when analyzing time-series data:
 
 > Do one or more independent variables affect a continuously recorded dependent variable (a 'time series') at any point in time?
 
@@ -40,11 +45,14 @@ When *not* to use this test:
 - For time series that contain multiple components, that is, when each independent variable affects the time series in multiple ways that change over time. An example of this is the effect of visual attention on lateralized EEG recordings, where different EEG components emerge at different points in time.
 - When you know a priori which time points to test.
 
-More specifically, this package provides a function (`find()`) that locates and statistically tests effects in time-series data. It does so by using crossvalidation to identify time points to test, and then using a linear mixed effects model to actually perform the statistical test. More specifically, the data is subdivided in a number of subsets (by default 4). It takes one of the subsets (the *test* set) out of the full dataset, and conducts a linear mixed effects model on each sample of the remaining data (the *training* set). The sample with the highest absolute z value in the training set is used as the sample-to-be-tested for the test set. This procedure is repeated for all subsets of the data, and for all fixed effects in the model. Finally, a single linear mixed effects model is conducted for each fixed effects on the samples that were thus identified.
+More specifically, `lmer_crossvalidation_test()` locates and statistically tests effects in time-series data. It does so by using crossvalidation to identify time points to test, and then using a linear mixed effects model to actually perform the statistical test. More specifically, the data is subdivided in a number of subsets (by default 4). It takes one of the subsets (the *test* set) out of the full dataset, and conducts a linear mixed effects model on each sample of the remaining data (the *training* set). The sample with the highest absolute z value in the training set is used as the sample-to-be-tested for the test set. This procedure is repeated for all subsets of the data, and for all fixed effects in the model. Finally, a single linear mixed effects model is conducted for each fixed effects on the samples that were thus identified.
 
-This packages also provides a function (`plot()`) to visualize time-series data to visually annotate the results of `find()`.
+This packages also provides a function (`plot()`) to visualize time-series data to visually annotate the results of `lmer_crossvalidation_test()`.
 
-For a more detailed description, see the manuscript above.
+
+### When to use `lmer_permutation_test()`?
+
+`lmer_permutation_test()` implements a fairly standard cluster-based permutation test, which differs from most other implementations in that it relies on linear mixed-effects modeling to calculate the test statistics. Therefore, this function tends to be extremely computationally intensive, but should also be more sensitive than cluster-based permutation tests that are based on average data. Its main advantage as compared to `lmer_crossvalidation_test()` is that it is also valid for data with multiple components, such as event-related potentials (ERPs).
 
 
 ## Installation

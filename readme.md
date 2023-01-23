@@ -1,9 +1,9 @@
 # Time Series Test
 
-*A statistical test and plotting function for time-series data in general, and data from cognitive-pupillometry experiments in particular. Based on linear mixed effects modeling and crossvalidation.*
+*Statistical testing and plotting functions for time-series data in general, and data from cognitive-pupillometry experiments in particular. Based on linear mixed effects modeling, crossvalidation, and cluster-based permutation testing.*
 
 Sebastiaan Mathôt (@smathot) <br />
-Copyright 2021 - 2022
+Copyright 2021 - 2023
 
 [![Publish to PyPi](https://github.com/smathot/time_series_test/actions/workflows/publish-package.yaml/badge.svg)](https://github.com/smathot/time_series_test/actions/workflows/publish-package.yaml)
 [![Tests](https://github.com/smathot/time_series_test/actions/workflows/run-unittests.yaml/badge.svg)](https://github.com/smathot/time_series_test/actions/workflows/run-unittests.yaml)
@@ -26,7 +26,12 @@ Mathôt, S., & Vilotijević, A. (2022). Methods in cognitive pupillometry: desig
 
 ## About
 
-In general terms, this package implements a statistical test for a specific-yet-common question when analyzing time-series data:
+This library provides two main functions for statistical testing of time-series data: `lmer_crossvalidation_test()` and `lmer_permutation_test()`. For a detailed description, see the manuscript above, but below a short introduction to both functions with their respective advantages and disadavantages.
+
+
+### When to use crossvalidation?
+
+In general terms, `lmer_crossvalidation_test()` implements a statistical test for a specific-yet-common question when analyzing time-series data:
 
 > Do one or more independent variables affect a continuously recorded dependent variable (a 'time series') at any point in time?
 
@@ -40,11 +45,14 @@ When *not* to use this test:
 - For time series that contain multiple components, that is, when each independent variable affects the time series in multiple ways that change over time. An example of this is the effect of visual attention on lateralized EEG recordings, where different EEG components emerge at different points in time.
 - When you know a priori which time points to test.
 
-More specifically, this package provides a function (`find()`) that locates and statistically tests effects in time-series data. It does so by using crossvalidation to identify time points to test, and then using a linear mixed effects model to actually perform the statistical test. More specifically, the data is subdivided in a number of subsets (by default 4). It takes one of the subsets (the *test* set) out of the full dataset, and conducts a linear mixed effects model on each sample of the remaining data (the *training* set). The sample with the highest absolute z value in the training set is used as the sample-to-be-tested for the test set. This procedure is repeated for all subsets of the data, and for all fixed effects in the model. Finally, a single linear mixed effects model is conducted for each fixed effects on the samples that were thus identified.
+More specifically, `lmer_crossvalidation_test()` locates and statistically tests effects in time-series data. It does so by using crossvalidation to identify time points to test, and then using a linear mixed effects model to actually perform the statistical test. More specifically, the data is subdivided in a number of subsets (by default 4). It takes one of the subsets (the *test* set) out of the full dataset, and conducts a linear mixed effects model on each sample of the remaining data (the *training* set). The sample with the highest absolute z value in the training set is used as the sample-to-be-tested for the test set. This procedure is repeated for all subsets of the data, and for all fixed effects in the model. Finally, a single linear mixed effects model is conducted for each fixed effects on the samples that were thus identified.
 
-This packages also provides a function (`plot()`) to visualize time-series data to visually annotate the results of `find()`.
+This packages also provides a function (`plot()`) to visualize time-series data to visually annotate the results of `lmer_crossvalidation_test()`.
 
-For a more detailed description, see the manuscript above.
+
+### When to use `lmer_permutation_test()`?
+
+`lmer_permutation_test()` implements a fairly standard cluster-based permutation test, which differs from most other implementations in that it relies on linear mixed-effects modeling to calculate the test statistics. Therefore, this function tends to be extremely computationally intensive. Its main advantage of `find()` is that it is also valid for data with multiple components, such as event-related potentials (ERPs).
 
 
 ## Installation
@@ -289,7 +297,8 @@ parameters.
 
 ## <span style="color:purple">time\_series\_test.lmer\_series</span>_(dm, formula, winlen=1, fit\_kwargs={}, \*\*kwargs)_
 
-Performs a sample-by-sample linear-mixed-effects analysis.
+Performs a sample-by-sample linear-mixed-effects analysis. See `lmer_crossvalidation()`
+for an explanation of the arguments.
 
 ### Parameters
 
@@ -316,7 +325,57 @@ Performs a sample-by-sample linear-mixed-effects analysis.
   - `z`: the z value
   - `se`: the standard error
 
-## <span style="color:purple">time\_series\_test.plot</span>_(dm, dv, hue\_factor, results=None, linestyle\_factor=None, hues=None, linestyles=None, alpha\_level=0.05, annotate\_intercept=False, annotation\_hues=None, annotation\_linestyle=':')_
+## <span style="color:purple">time\_series\_test.lmer\_permutation\_test</span>_(dm, formula, groups, re\_formula=None, winlen=1, suppress\_convergence\_warnings=False, fit\_kwargs={}, iterations=1000, cluster\_p\_threshold=0.05, \*\*kwargs)_
+
+Performs a cluster-based permutation test based on sample-by-sample
+linear-mixed-effects analyses. The permutation test identifies clusters
+based on p-value threshold and uses the absolute of the summed z-values of
+the clusters as test statistic.
+
+If no clusters reach the threshold, the test is skipped right away. The
+Intercept is ignored for this criterion, because the intercept usually has
+significant clusters that we're not interested in.
+
+*Warning:* This is generally an extremely time-consuming analysis because
+it requires thousands of lmers to be run.
+
+See `lmer_crossvalidation()` for an explanation of the arguments.
+
+### Parameters
+
+* **dm: DataMatrix**
+
+* **formula: str**
+
+* **groups: str**
+
+* **re\_formula: str or None, optional**
+
+* **winlen: int, optional**
+
+* **suppress\_convergence\_warnings: bool, optional**
+
+* **fit\_kwargs: dict, optional**
+
+* **iterations: int, optional**
+
+  The number of permutations to run.
+
+* **cluster\_p\_threshold: float or None, optional**
+
+  The maximum p-value for a sample to be considered part of a cluster.
+
+* **\*\*kwargs: dict, optional**
+
+### Returns
+
+* **_dict_**
+
+  A dict with effects as keys and lists of clusters defined by
+  (start, end, z-sum, hit proportion) tuples. The p-value is
+  1 - hit proportion.
+
+## <span style="color:purple">time\_series\_test.plot</span>_(dm, dv, hue\_factor, results=None, linestyle\_factor=None, hues=None, linestyles=None, alpha\_level=0.05, annotate\_intercept=False, annotation\_hues=None, annotation\_linestyle=':', legend\_kwargs=None, annotation\_legend\_kwargs=None)_
 
 Visualizes a time series, where the signal is plotted as a function of
 sample number on the x-axis. One fixed effect is indicated by the hue
@@ -342,7 +401,7 @@ annotated in the figure.
 
 * **results: dict, optional**
 
-  A `results` dict as returned by `find()`.
+  A `results` dict as returned by `lmer_crossvalidation()`.
 
 * **linestyle\_factor: str, optional**
 
@@ -377,16 +436,25 @@ annotated in the figure.
 
   The linestyle for the annotations.
 
+* **legend\_kwargs: None or dict, optional**
+
+  Optional keywords to be passed to `plt.legend()` for the factor legend.
+
+* **annotation\_legend\_kwargs: None or dict, optional**
+
+  Optional keywords to be passed to `plt.legend()` for the annotation
+  legend.
+
 ## <span style="color:purple">time\_series\_test.summarize</span>_(results, detailed=False)_
 
 Generates a string with a human-readable summary of a results `dict` as
-returned by `find()`.
+returned by `lmer_crossvalidation()`.
 
 ### Parameters
 
 * **results: dict**
 
-  A `results` dict as returned by `find()`.
+  A `results` dict as returned by `lmer_crossvalidation()`.
 
 * **detailed: bool, optional**
 
