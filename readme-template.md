@@ -1,6 +1,6 @@
 # Time Series Test
 
-*Statistical testing and plotting functions for time-series data in general, and data from cognitive-pupillometry experiments in particular. Based on linear mixed effects modeling, crossvalidation, and cluster-based permutation testing.*
+*Statistical testing and plotting functions for time-series data in general, and data from cognitive-pupillometry and electroencephalography (EEG) experiments in particular. Based on linear mixed effects modeling (or regular multiple linear regression), crossvalidation, and cluster-based permutation testing.*
 
 Sebastiaan Mathôt (@smathot) <br />
 Copyright 2021 - 2023
@@ -53,6 +53,11 @@ This packages also provides a function (`plot()`) to visualize time-series data 
 ### When to use `lmer_permutation_test()`?
 
 `lmer_permutation_test()` implements a fairly standard cluster-based permutation test, which differs from most other implementations in that it relies on linear mixed-effects modeling to calculate the test statistics. Therefore, this function tends to be extremely computationally intensive, but should also be more sensitive than cluster-based permutation tests that are based on average data. Its main advantage as compared to `lmer_crossvalidation_test()` is that it is also valid for data with multiple components, such as event-related potentials (ERPs).
+
+
+### Can the tests also be based on regular multiple regression (instead of linear mixed effects modeling)?
+
+Yes. If you pass `groups=None` to any of the functions, the analysis will be based on a regular multiple linear regression instead of linear mixed effects modeling.
 
 
 ## Installation
