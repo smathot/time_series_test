@@ -1,5 +1,7 @@
 # coding=utf-8
-"""A statistical test and plotting function for time-series data in general, and data from cognitive-pupillometry experiments in particular. Based on linear mixed effects modeling and crossvalidation.
+"""A statistical test and plotting function for time-series data in general, 
+and data from cognitive-pupillometry experiments in particular. Based on linear
+mixed effects modeling and crossvalidation.
 """
 from datamatrix import DataMatrix, SeriesColumn, convert as cnv, \
     series as srs, operations as ops
@@ -7,12 +9,13 @@ import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.lines import Line2D
 import statsmodels.formula.api as smf
+from statsmodels.tools.sm_exceptions import ConvergenceWarning
 import warnings
 import logging
 import re
 from collections import namedtuple
 
-__version__ = '0.9.2'
+__version__ = '0.10.0'
 DEFAULT_HUE_COLORMAP = 'Dark2'
 DEFAULT_ANNOTATION_COLORMAP = 'brg'
 DEEP_ORANGE = ['#bf360c', '#e64a19', '#ff5722', '#ff8a65', '#ffccbc']
@@ -39,9 +42,11 @@ def lmer_crossvalidation_test(dm, formula, groups, re_formula=None, winlen=1,
         A formula that describes the dependent variable, which should be the
         name of a series column in `dm`, and the fixed effects, which should
         be regular (non-series) columns.
-    groups: str or list of str
+    groups: str or None or list of str
         The groups for the random effects, which should be regular (non-series)
-        columns in `dm`.
+        columns in `dm`. If `None` is specified, then all analyses are based
+        on a regular multiple linear regression (instead of linear mixed 
+        effects model).
     re_formula: str or None
         A formula that describes the random effects, which should be regular
         (non-series) columns in `dm`.
@@ -78,8 +83,7 @@ def lmer_crossvalidation_test(dm, formula, groups, re_formula=None, winlen=1,
         Installs a warning filter to suppress conververgence (and other)
         warnings.
     **kwargs: dict, optional
-        Optional keywords to be passed to `mixedlm()`, such as `groups` and
-        `re_formula`.
+        Optional keywords to be passed to `mixedlm()`.
         
     Returns
     -------
@@ -97,7 +101,6 @@ def lmer_crossvalidation_test(dm, formula, groups, re_formula=None, winlen=1,
     dm = _trim_dm(dm, formula, groups, re_formula)
     with warnings.catch_warnings():
         if suppress_convergence_warnings:
-            from statsmodels.tools.sm_exceptions import ConvergenceWarning
             warnings.simplefilter(action='ignore', category=ConvergenceWarning)
         logger.debug('running localizer')
         dm.__lmer_localizer__ = _lmer_run_localizer(
@@ -108,13 +111,13 @@ def lmer_crossvalidation_test(dm, formula, groups, re_formula=None, winlen=1,
         logger.debug('testing localizer results')
         return _lmer_test_localizer(dm, formula, groups, re_formula=re_formula,
                                     winlen=winlen, samples_fe=samples_fe,
-                                    fit_kwargs=fit_kwargs, samples_re=samples_re,
-                                    **kwargs)
+                                    fit_kwargs=fit_kwargs,
+                                    samples_re=samples_re, **kwargs)
 
 
 def lmer_series(dm, formula, winlen=1, fit_kwargs={}, **kwargs):
-    """Performs a sample-by-sample linear-mixed-effects analysis. See `lmer_crossvalidation()`
-    for an explanation of the arguments.
+    """Performs a sample-by-sample linear-mixed-effects analysis. See
+    `lmer_crossvalidation()` for an explanation of the arguments.
     
     Parameters
     ----------
@@ -147,15 +150,25 @@ def lmer_series(dm, formula, winlen=1, fit_kwargs={}, **kwargs):
     dv = terms[0]
     depth = dm[dv].depth
     rm = None
+    kwargs = kwargs.copy()
+    if kwargs.get('groups', None) is None:
+        logger.warning('no groups specified, using ordinary least squares')
+        if 'groups' in kwargs:
+            del kwargs['groups']
+        if 're_formula' in kwargs:
+            del kwargs['re_formula']
+        model = smf.ols
+    else:
+        model = smf.mixedlm
     for i in range(0, depth, winlen):
         logger.debug('sample {}'.format(i))
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
             wm_no_dv[dv] = srs.reduce(
                 srs.window(wm[dv], start=i, end=i+winlen))
+        valid_dm = wm_no_dv[dv] != np.nan
         try:
-            lm = smf.mixedlm(formula, wm_no_dv[dv] != np.nan, **kwargs).fit(
-                **fit_kwargs)
+            lm = model(formula, valid_dm, **kwargs).fit(**fit_kwargs)
         except np.linalg.LinAlgError as e:
             warnings.warn('failed to fit mode: {}'.format(e))
             continue
@@ -221,7 +234,6 @@ def lmer_permutation_test(dm, formula, groups, re_formula=None, winlen=1,
     # largest clusters for each effect
     with warnings.catch_warnings():
         if suppress_convergence_warnings:
-            from statsmodels.tools.sm_exceptions import ConvergenceWarning
             warnings.simplefilter(action='ignore', category=ConvergenceWarning)
         rm_obs = lmer_series(dm, formula=formula, groups=groups,
                              re_formula=re_formula, winlen=winlen,
@@ -242,16 +254,23 @@ def lmer_permutation_test(dm, formula, groups, re_formula=None, winlen=1,
             logger.info(f'no clusters reach threshold, skipping test')
             break
         logger.info(f'start of iteration {i}')
-        # Permute the order of the terms while keeping groups intact
-        for group, gdm in ops.split(dm[groups]):
+        if groups is None:
+            # If no groups are specified (and we are therefore falling back
+            # to a normal multiple linear regression), we simply shuffle the
+            # full datamatrix.
             for term in terms:
-                dm[term][gdm] = ops.shuffle(gdm[term])
+                dm[term] = ops.shuffle(dm[term])
+        else:
+            # Permute the order of the terms while keeping groups intact
+            for group, gdm in ops.split(dm[groups]):
+                for term in terms:
+                    dm[term][gdm] = ops.shuffle(gdm[term])
         # Conduct a sample-by-sample lme on the permuted data, and get the
         # largest (spurious) clusters
         with warnings.catch_warnings():
             if suppress_convergence_warnings:
-                from statsmodels.tools.sm_exceptions import ConvergenceWarning
-                warnings.simplefilter(action='ignore', category=ConvergenceWarning)
+                warnings.simplefilter(action='ignore',
+                                      category=ConvergenceWarning)
             rm_it = lmer_series(dm, formula=formula, groups=groups,
                                 re_formula=re_formula, winlen=winlen,
                                 fit_kwargs=fit_kwargs, **kwargs)
@@ -269,10 +288,12 @@ def lmer_permutation_test(dm, formula, groups, re_formula=None, winlen=1,
             logger.info(f'permutation zsum for {effect} = {zsum_it:.2f}')
             for j, (_, _, zsum_obs) in enumerate(cluster_obs[effect]):
                 if zsum_obs > zsum_it:
-                    logger.info(f'hit for {effect} cluster {j} ({zsum_obs:.2f} > {zsum_it:.2f})')
+                    logger.info(f'hit for {effect} cluster {j} '
+                                f'({zsum_obs:.2f} > {zsum_it:.2f})')
                     cluster_hits[effect][j] += 1
                 else:
-                    logger.info(f'miss for {effect} cluster {j} ({zsum_obs:.2f} <= {zsum_it:.2f})')
+                    logger.info(f'miss for {effect} cluster {j} '
+                                f'({zsum_obs:.2f} <= {zsum_it:.2f})')
         logger.info(f'hits after iteration {i}: {cluster_hits}')
     # Return a dict with a list of (start, end, zsum, pvalue) tuples
     cluster_pvalues = {}
@@ -444,9 +465,12 @@ def summarize(results, detailed=False):
 def _trim_dm(dm, formula, groups, re_formula):
     """Removes unnecessary columns from the datamatrix"""
     trimmed_dm = DataMatrix(length=len(dm))
+    if groups is None:
+        groups = []
+    if re_formula is None:
+        re_formula = []
     for colname in dm.column_names:
-        if colname in formula or colname in groups or re_formula is None or \
-                colname in re_formula:
+        if colname in formula or colname in groups or colname in re_formula:
             logger.debug('keeping column {}'.format(colname))
             trimmed_dm[colname] = dm[colname]
         else:
@@ -540,7 +564,7 @@ def _lmer_test_localizer(dm, formula, groups, re_formula=None, winlen=1,
             if samples_re and re_formula is not None:
                 _re_formula += ' + __lmer_samples__'
         lm = smf.mixedlm(_formula, test_dm[dv] != np.nan, groups=groups,
-                        re_formula=_re_formula).fit(**fit_kwargs)
+                         re_formula=_re_formula).fit(**fit_kwargs)
         effect_name = lm.model.exog_names[effect]
         results[effect_name] = Results(model=lm,
                                        samples=set(indices[:, effect]),
@@ -559,7 +583,7 @@ def _terms(formula, **kwargs):
     and re_formula, which are optionally specified through **kwargs
     """
     terms = _split_terms(formula)
-    if 'groups' in kwargs:
+    if kwargs.get('groups', None) is not None:
         terms.append(kwargs['groups'])
     if kwargs.get('re_formula', None) is not None:
         terms += _split_terms(kwargs['re_formula'])
