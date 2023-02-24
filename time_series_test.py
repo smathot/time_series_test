@@ -13,9 +13,10 @@ from statsmodels.tools.sm_exceptions import ConvergenceWarning
 import warnings
 import logging
 import re
+import random
 from collections import namedtuple
 
-__version__ = '0.10.0'
+__version__ = '0.11.0'
 DEFAULT_HUE_COLORMAP = 'Dark2'
 DEFAULT_ANNOTATION_COLORMAP = 'brg'
 DEEP_ORANGE = ['#bf360c', '#e64a19', '#ff5722', '#ff8a65', '#ffccbc']
@@ -190,15 +191,17 @@ def lmer_series(dm, formula, winlen=1, fit_kwargs={}, **kwargs):
 
 def lmer_permutation_test(dm, formula, groups, re_formula=None, winlen=1,
                           suppress_convergence_warnings=False, fit_kwargs={},
-                          iterations=1000, cluster_p_threshold=.05, **kwargs):
+                          iterations=1000, cluster_p_threshold=.05, 
+                          test_intercept=False, **kwargs):
     """Performs a cluster-based permutation test based on sample-by-sample
     linear-mixed-effects analyses. The permutation test identifies clusters
     based on p-value threshold and uses the absolute of the summed z-values of
     the clusters as test statistic.
     
-    If no clusters reach the threshold, the test is skipped right away. The
-    Intercept is ignored for this criterion, because the intercept usually has
-    significant clusters that we're not interested in.
+    If no clusters reach the threshold, the test is skipped right away. By
+    default the Intercept is ignored for this criterion, because the intercept
+    usually has significant clusters that we're not interested in. However, you
+    can change this using the `test_intercept` keyword.
     
     *Warning:* This is generally an extremely time-consuming analysis because
     it requires thousands of lmers to be run.
@@ -218,6 +221,9 @@ def lmer_permutation_test(dm, formula, groups, re_formula=None, winlen=1,
         The number of permutations to run.
     cluster_p_threshold: float or None, optional
         The maximum p-value for a sample to be considered part of a cluster.
+    test_intercept: bool, optional
+        Indicates whether the intercept should be included when considering if
+        there are any clusters, as described above.
     **kwargs: dict, optional
     
     Returns
@@ -229,6 +235,10 @@ def lmer_permutation_test(dm, formula, groups, re_formula=None, winlen=1,
     """
     dm = _trim_dm(dm, formula, groups, re_formula)
     terms = _terms(formula, **kwargs)
+    if len(terms) == 1:
+        logger.warning('only a single term in formula, adding dummy predictor')
+        formula += '~ dummy'
+        dm.dummy = 0
     dv = terms[0]
     # First conduct a regular sample-by-sample lme, and get the size of the
     # largest clusters for each effect
@@ -250,16 +260,26 @@ def lmer_permutation_test(dm, formula, groups, re_formula=None, winlen=1,
         # generally does have significant clusters but we're not interested in
         # those.
         if not any(clusters for effect, clusters in cluster_obs.items()
-                   if effect != 'Intercept'):
+                   if effect != 'Intercept' or test_intercept):
             logger.info(f'no clusters reach threshold, skipping test')
             break
         logger.info(f'start of iteration {i}')
+        print(terms)
         if groups is None:
             # If no groups are specified (and we are therefore falling back
             # to a normal multiple linear regression), we simply shuffle the
             # full datamatrix.
-            for term in terms:
-                dm[term] = ops.shuffle(dm[term])
+            if len(terms) > 1:
+                for term in terms:
+                    dm[term] = ops.shuffle(dm[term])
+            # If there is only a single term, this means that we're testing the
+            # the intercept without any fixed effects. In that case, the
+            # permutation entails randomly changing the sign of the intercept.
+            # This is unusual, so we notify the reader.
+            else:
+                logger.warning(f'only a single term in formula, '
+                               f'randomly swapping sign of {dv} to permute')
+                dm[dv] *= random.choices([1, -1], k=len(dm))
         else:
             # Permute the order of the terms while keeping groups intact
             for group, gdm in ops.split(dm[groups]):

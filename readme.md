@@ -301,16 +301,17 @@ parameters.
   A dict where keys are effect labels, and values are named tuples
   of `model`, `samples`, `p`, and `z`.
 
-## <span style="color:purple">time\_series\_test.lmer\_permutation\_test</span>_(dm, formula, groups, re\_formula=None, winlen=1, suppress\_convergence\_warnings=False, fit\_kwargs={}, iterations=1000, cluster\_p\_threshold=0.05, \*\*kwargs)_
+## <span style="color:purple">time\_series\_test.lmer\_permutation\_test</span>_(dm, formula, groups, re\_formula=None, winlen=1, suppress\_convergence\_warnings=False, fit\_kwargs={}, iterations=1000, cluster\_p\_threshold=0.05, test\_intercept=False, \*\*kwargs)_
 
 Performs a cluster-based permutation test based on sample-by-sample
 linear-mixed-effects analyses. The permutation test identifies clusters
 based on p-value threshold and uses the absolute of the summed z-values of
 the clusters as test statistic.
 
-If no clusters reach the threshold, the test is skipped right away. The
-Intercept is ignored for this criterion, because the intercept usually has
-significant clusters that we're not interested in.
+If no clusters reach the threshold, the test is skipped right away. By
+default the Intercept is ignored for this criterion, because the intercept
+usually has significant clusters that we're not interested in. However, you
+can change this using the `test_intercept` keyword.
 
 *Warning:* This is generally an extremely time-consuming analysis because
 it requires thousands of lmers to be run.
@@ -340,6 +341,11 @@ See `lmer_crossvalidation()` for an explanation of the arguments.
 * **cluster\_p\_threshold: float or None, optional**
 
   The maximum p-value for a sample to be considered part of a cluster.
+
+* **test\_intercept: bool, optional**
+
+  Indicates whether the intercept should be included when considering if
+  there are any clusters, as described above.
 
 * **\*\*kwargs: dict, optional**
 
