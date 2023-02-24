@@ -16,7 +16,7 @@ import re
 import random
 from collections import namedtuple
 
-__version__ = '0.11.0'
+__version__ = '0.11.1'
 DEFAULT_HUE_COLORMAP = 'Dark2'
 DEFAULT_ANNOTATION_COLORMAP = 'brg'
 DEEP_ORANGE = ['#bf360c', '#e64a19', '#ff5722', '#ff8a65', '#ffccbc']
@@ -264,7 +264,6 @@ def lmer_permutation_test(dm, formula, groups, re_formula=None, winlen=1,
             logger.info(f'no clusters reach threshold, skipping test')
             break
         logger.info(f'start of iteration {i}')
-        print(terms)
         if groups is None:
             # If no groups are specified (and we are therefore falling back
             # to a normal multiple linear regression), we simply shuffle the
