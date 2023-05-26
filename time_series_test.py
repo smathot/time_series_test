@@ -16,7 +16,7 @@ import re
 import random
 from collections import namedtuple
 
-__version__ = '0.11.1'
+__version__ = '0.11.2'
 DEFAULT_HUE_COLORMAP = 'Dark2'
 DEFAULT_ANNOTATION_COLORMAP = 'brg'
 DEEP_ORANGE = ['#bf360c', '#e64a19', '#ff5722', '#ff8a65', '#ffccbc']
@@ -623,22 +623,27 @@ def _clusters(rm, cluster_p_threshold):
     clusters = {}
     for row in rm:
         pi = None
+        pz = 0
         clusters[row.effect] = []
         # Loop through all indices that are part of clusters
         for i in np.where(row.p < cluster_p_threshold)[0]:
-            # We're entering a new cluster
-            if i - 1 != pi:
+            # We're entering a new cluster if the current index isn't one more
+            # than the previous index, or if the sign of the z value has
+            # flipped
+            z = row.z[i]
+            if i - 1 != pi or z * pz < 0:
                 # Store previous cluster
                 if pi is not None:
-                    clusters[row.effect].append((start, i, abs(z_sum)))
+                    clusters[row.effect].append((start, pi + 1, abs(z_sum)))
                 start = i
                 z_sum = 0
-            z_sum += row.z[i]
+            z_sum += z
             pi = i
+            pz = z
         if pi is not None:
             # Store last cluster
-            clusters[row.effect].append((start, i, abs(z_sum)))
-        clusters[row.effect].sort(key=lambda i: -i[2])
+            clusters[row.effect].append((start, i + 1, abs(z_sum)))
+        clusters[row.effect].sort(key=lambda z: -z[2])
     return clusters
 
 
