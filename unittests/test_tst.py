@@ -2,7 +2,7 @@ import time_series_test as tst
 import os
 import math
 import numpy as np
-from datamatrix import io
+from datamatrix import io, DataMatrix, MultiDimensionalColumn
 
 
 def _test_indices(fnc):
@@ -39,3 +39,14 @@ def test_find():
     assert math.isclose(results['set_size'].p, 4.68068027552196e-63)
     assert math.isclose(results['set_size:color_type[T.proto]'].p,
                         0.013513332566898819)
+
+
+def test_clusters():
+    rm = DataMatrix(length=1)
+    rm.p = MultiDimensionalColumn(shape=8)
+    rm.p = 1, 0, 0, 0, 1, 1, 0, 0
+    rm.z = MultiDimensionalColumn(shape=8)
+    rm.z = 0, 1, 1, -1, 0, 0, -1, -1
+    rm.effect = 'dummy'
+    assert tst._clusters(rm, .05) == {
+        'dummy': [(1, 3, 2.0), (6, 8, 2.0), (3, 4, 1.0)]}
