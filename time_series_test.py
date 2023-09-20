@@ -15,6 +15,8 @@ import logging
 import re
 import random
 from collections import namedtuple
+from tqdm import tqdm
+
 
 __version__ = '0.11.2'
 DEFAULT_HUE_COLORMAP = 'Dark2'
@@ -254,7 +256,7 @@ def lmer_permutation_test(dm, formula, groups, re_formula=None, winlen=1,
                     for effect, clusters in cluster_obs.items()}
     logger.info(f'observed clusters: {cluster_obs}')
     # Now run through all iterations
-    for i in range(iterations):
+    for i in tqdm(range(iterations), "lmer_permutation_test"):
         # If there are no significant clusters, we'll skip the test altogether
         # to save time. The Intercept doesn't count here, because the intercept
         # generally does have significant clusters but we're not interested in
