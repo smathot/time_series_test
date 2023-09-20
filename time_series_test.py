@@ -15,7 +15,6 @@ import logging
 import re
 import random
 from collections import namedtuple
-from tqdm import tqdm
 
 
 __version__ = '0.11.2'
@@ -118,7 +117,7 @@ def lmer_crossvalidation_test(dm, formula, groups, re_formula=None, winlen=1,
                                     samples_re=samples_re, **kwargs)
 
 
-def lmer_series(dm, formula, winlen=1, fit_kwargs={}, **kwargs):
+def lmer_series(dm, formula, winlen=1, progbar=False, fit_kwargs={}, **kwargs):
     """Performs a sample-by-sample linear-mixed-effects analysis. See
     `lmer_crossvalidation()` for an explanation of the arguments.
     
@@ -163,7 +162,14 @@ def lmer_series(dm, formula, winlen=1, fit_kwargs={}, **kwargs):
         model = smf.ols
     else:
         model = smf.mixedlm
-    for i in range(0, depth, winlen):
+
+    if progbar:
+        from tqdm import tqdm 
+        iterator = tqdm(range(0, depth, winlen), 'lmer_series')
+    else:
+        iterator = range(0, depth, winlen)
+
+    for i in iterator:
         logger.debug('sample {}'.format(i))
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
@@ -194,7 +200,7 @@ def lmer_series(dm, formula, winlen=1, fit_kwargs={}, **kwargs):
 def lmer_permutation_test(dm, formula, groups, re_formula=None, winlen=1,
                           suppress_convergence_warnings=False, fit_kwargs={},
                           iterations=1000, cluster_p_threshold=.05, 
-                          test_intercept=False, **kwargs):
+                          test_intercept=False, progbar=False, **kwargs):
     """Performs a cluster-based permutation test based on sample-by-sample
     linear-mixed-effects analyses. The permutation test identifies clusters
     based on p-value threshold and uses the absolute of the summed z-values of
@@ -256,7 +262,12 @@ def lmer_permutation_test(dm, formula, groups, re_formula=None, winlen=1,
                     for effect, clusters in cluster_obs.items()}
     logger.info(f'observed clusters: {cluster_obs}')
     # Now run through all iterations
-    for i in tqdm(range(iterations), "lmer_permutation_test"):
+    if progbar:
+        from tqdm import tqdm 
+        iterator = tqdm(iterations, 'lmer_permutation_test')
+    else:
+        iterator = iterations
+    for i in iterator:
         # If there are no significant clusters, we'll skip the test altogether
         # to save time. The Intercept doesn't count here, because the intercept
         # generally does have significant clusters but we're not interested in
