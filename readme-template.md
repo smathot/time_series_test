@@ -98,7 +98,8 @@ The `plot()` function provides a convenient way to plot pupil size over time as 
 import time_series_test as tst
 from matplotlib import pyplot as plt
 
-tst.plot(dm, dv='pupil', hue_factor='set_size', linestyle_factor='color_type')
+tst.plot(dm, dv='pupil', hue_factor='set_size', linestyle_factor='color_type',
+         sampling_freq=100)
 plt.savefig('img/signal-plot-1.png')
 ```
 
@@ -144,7 +145,7 @@ We can pass the `results` to `plot()` to visualize the results:
 ```python
 plt.clf()
 tst.plot(dm, dv='pupil', hue_factor='set_size', linestyle_factor='color_type',
-         results=results)
+         results=results, sampling_freq=100)
 plt.savefig('img/signal-plot-2.png')
 ```
 

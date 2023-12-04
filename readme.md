@@ -104,7 +104,8 @@ The `plot()` function provides a convenient way to plot pupil size over time as 
 import time_series_test as tst
 from matplotlib import pyplot as plt
 
-tst.plot(dm, dv='pupil', hue_factor='set_size', linestyle_factor='color_type')
+tst.plot(dm, dv='pupil', hue_factor='set_size', linestyle_factor='color_type',
+         sampling_freq=100)
 plt.savefig('img/signal-plot-1.png')
 ```
 
@@ -196,7 +197,7 @@ We can pass the `results` to `plot()` to visualize the results:
 ```python
 plt.clf()
 tst.plot(dm, dv='pupil', hue_factor='set_size', linestyle_factor='color_type',
-         results=results)
+         results=results, sampling_freq=100)
 plt.savefig('img/signal-plot-2.png')
 ```
 
@@ -387,7 +388,7 @@ Performs a sample-by-sample linear-mixed-effects analysis. See
   - `z`: the z value
   - `se`: the standard error
 
-## <span style="color:purple">time\_series\_test.plot</span>_(dm, dv, hue\_factor, results=None, linestyle\_factor=None, hues=None, linestyles=None, alpha\_level=0.05, annotate\_intercept=False, annotation\_hues=None, annotation\_linestyle=':', legend\_kwargs=None, annotation\_legend\_kwargs=None)_
+## <span style="color:purple">time\_series\_test.plot</span>_(dm, dv, hue\_factor, results=None, linestyle\_factor=None, hues=None, linestyles=None, alpha\_level=0.05, annotate\_intercept=False, annotation\_hues=None, annotation\_linestyle=':', legend\_kwargs=None, annotation\_legend\_kwargs=None, x0=0, sampling\_freq=1)_
 
 Visualizes a time series, where the signal is plotted as a function of
 sample number on the x-axis. One fixed effect is indicated by the hue
@@ -456,6 +457,14 @@ annotated in the figure.
 
   Optional keywords to be passed to `plt.legend()` for the annotation
   legend.
+
+* **x0: int, float**
+
+  The starting value on the x-axis.
+
+* **sampling\_freq: int, float**
+
+  The sampling frequency.
 
 ## <span style="color:purple">time\_series\_test.summarize</span>_(results, detailed=False)_
 
