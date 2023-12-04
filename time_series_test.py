@@ -16,7 +16,7 @@ import re
 import random
 from collections import namedtuple
 
-__version__ = '0.11.2'
+__version__ = '0.12.0'
 DEFAULT_HUE_COLORMAP = 'Dark2'
 DEFAULT_ANNOTATION_COLORMAP = 'brg'
 DEEP_ORANGE = ['#bf360c', '#e64a19', '#ff5722', '#ff8a65', '#ffccbc']
@@ -327,7 +327,7 @@ def lmer_permutation_test(dm, formula, groups, re_formula=None, winlen=1,
 def plot(dm, dv, hue_factor, results=None, linestyle_factor=None, hues=None,
          linestyles=None, alpha_level=.05, annotate_intercept=False,
          annotation_hues=None, annotation_linestyle=':', legend_kwargs=None,
-         annotation_legend_kwargs=None):
+         annotation_legend_kwargs=None, x0=0, sampling_freq=1):
     """Visualizes a time series, where the signal is plotted as a function of
     sample number on the x-axis. One fixed effect is indicated by the hue
     (color) of the lines. An optional second fixed effect is indicated by the
@@ -370,6 +370,10 @@ def plot(dm, dv, hue_factor, results=None, linestyle_factor=None, hues=None,
     annotation_legend_kwargs: None or dict, optional
         Optional keywords to be passed to `plt.legend()` for the annotation
         legend.
+    x0: int, float
+        The starting value on the x-axis.
+    sampling_freq: int, float
+        The sampling frequency.
     """
     cols = [dv]
     if hue_factor is not None:
@@ -383,6 +387,9 @@ def plot(dm, dv, hue_factor, results=None, linestyle_factor=None, hues=None,
         hues = _colors(hues, dm[hue_factor].count)
     if linestyles is None:
         linestyles = LINESTYLES
+    # Adjust x axis
+    x = np.linspace(x0, x0 + (dm[dv].depth - 1) / sampling_freq, dm[dv].depth)
+    plt.xlim(x.min(), x.max())
     # Plot the annotations
     annotation_elements = []
     if results is not None:
@@ -397,16 +404,14 @@ def plot(dm, dv, hue_factor, results=None, linestyle_factor=None, hues=None,
             if result.p >= alpha_level:
                 continue
             hue = annotation_hues[i % len(annotation_hues)]
+            x_hit = x0 + np.mean(list(result.samples)) / sampling_freq
             annotation_elements.append(
-                plt.axvline(np.mean(list(result.samples)),
+                plt.axvline(x_hit,
                             linestyle=annotation_linestyle,
                             color=hue,
                             label='{}: p = {:.4f}'.format(effect, result.p)))
             i += 1
-    # Adjust x axis
-    plt.xlim(0, dm[dv].depth)
     # Plot the traces
-    x = np.arange(0, dm[dv].depth)
     for i1, (f1, dm1) in enumerate(ops.split(dm[hue_factor])):
         hue = hues[i1 % len(hues)]
         if linestyle_factor is None:
@@ -416,7 +421,7 @@ def plot(dm, dv, hue_factor, results=None, linestyle_factor=None, hues=None,
             ymin = y - yerr
             ymax = y + yerr
             plt.fill_between(x, ymin, ymax, color=hue, alpha=.2)
-            plt.plot(y, color=hue, linestyle=linestyles[0])
+            plt.plot(x, y, color=hue, linestyle=linestyles[0])
         else:
             for i2, (f2, dm2) in enumerate(ops.split(dm1[linestyle_factor])):
                 linestyle = linestyles[i2 % len(linestyles)]
@@ -426,7 +431,7 @@ def plot(dm, dv, hue_factor, results=None, linestyle_factor=None, hues=None,
                 ymin = y - yerr
                 ymax = y + yerr
                 plt.fill_between(x, ymin, ymax, color=hue, alpha=.2)
-                plt.plot(y, color=hue, linestyle=linestyle)
+                plt.plot(x, y, color=hue, linestyle=linestyle)
     # Implement legend
     if annotation_elements:
         if annotation_legend_kwargs is not None:
