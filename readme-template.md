@@ -3,7 +3,7 @@
 *Statistical testing and plotting functions for time-series data in general, and data from cognitive-pupillometry and electroencephalography (EEG) experiments in particular. Based on linear mixed effects modeling (or regular multiple linear regression), crossvalidation, and cluster-based permutation testing.*
 
 Sebastiaan Mathôt (@smathot) <br />
-Copyright 2021 - 2023
+Copyright 2021 - 2024
 
 [![Publish to PyPi](https://github.com/smathot/time_series_test/actions/workflows/publish-package.yaml/badge.svg)](https://github.com/smathot/time_series_test/actions/workflows/publish-package.yaml)
 [![Tests](https://github.com/smathot/time_series_test/actions/workflows/run-unittests.yaml/badge.svg)](https://github.com/smathot/time_series_test/actions/workflows/run-unittests.yaml)

@@ -3,7 +3,7 @@
 *Statistical testing and plotting functions for time-series data in general, and data from cognitive-pupillometry and electroencephalography (EEG) experiments in particular. Based on linear mixed effects modeling (or regular multiple linear regression), crossvalidation, and cluster-based permutation testing.*
 
 Sebastiaan Mathôt (@smathot) <br />
-Copyright 2021 - 2023
+Copyright 2021 - 2024
 
 [![Publish to PyPi](https://github.com/smathot/time_series_test/actions/workflows/publish-package.yaml/badge.svg)](https://github.com/smathot/time_series_test/actions/workflows/publish-package.yaml)
 [![Tests](https://github.com/smathot/time_series_test/actions/workflows/run-unittests.yaml/badge.svg)](https://github.com/smathot/time_series_test/actions/workflows/run-unittests.yaml)
@@ -182,10 +182,10 @@ print(tst.summarize(results))
 
 __Output:__
 ``` .text
-Intercept was tested at samples {95} → z = -13.1098, p = 2.892e-39
-color_type[T.proto] was tested at samples {160, 170, 175} → z = -2.0949, p = 0.03618
-set_size was tested at samples {185, 210, 195, 255} → z = 16.2437, p = 2.475e-59
-set_size:color_type[T.proto] was tested at samples {165, 175} → z = 2.5767, p = 0.009974
+Intercept was tested at samples {95} → z = -13.1098, p = 2.892e-39, converged = yes
+color_type[T.proto] was tested at samples {160, 170, 175} → z = -2.0949, p = 0.03618, converged = yes
+set_size was tested at samples {185, 210, 195, 255} → z = 16.2437, p = 2.475e-59, converged = yes
+set_size:color_type[T.proto] was tested at samples {165, 175} → z = 2.5767, p = 0.009974, converged = yes
 ```
 
 
