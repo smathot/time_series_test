@@ -16,7 +16,7 @@ import re
 import random
 from collections import namedtuple
 
-__version__ = '0.12.0'
+__version__ = '0.13.0'
 DEFAULT_HUE_COLORMAP = 'Dark2'
 DEFAULT_ANNOTATION_COLORMAP = 'brg'
 DEEP_ORANGE = ['#bf360c', '#e64a19', '#ff5722', '#ff8a65', '#ffccbc']
@@ -479,8 +479,8 @@ def summarize(results, detailed=False):
     summary = []
     for effect, (model, samples, p, z) in results.items():
         summary.append(
-            '{} was tested at samples {} → z = {:.4f}, p = {:.4}'.format(
-               effect, samples, z, p))
+            '{} was tested at samples {} → z = {:.4f}, p = {:.4}, converged = {}'.format(
+            effect, samples, z, p, 'yes' if model.converged else 'no'))
         if detailed:
             summary += ['', str(model.summary())]
     return '\n'.join(summary)
