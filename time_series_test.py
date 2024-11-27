@@ -16,7 +16,7 @@ import re
 import random
 from collections import namedtuple
 
-__version__ = '0.13.0'
+__version__ = '0.13.1'
 DEFAULT_HUE_COLORMAP = 'Dark2'
 DEFAULT_ANNOTATION_COLORMAP = 'brg'
 DEEP_ORANGE = ['#bf360c', '#e64a19', '#ff5722', '#ff8a65', '#ffccbc']
@@ -170,17 +170,20 @@ def lmer_series(dm, formula, winlen=1, fit_kwargs={}, **kwargs):
         valid_dm = wm_no_dv[dv] != np.nan
         try:
             lm = model(formula, valid_dm, **kwargs).fit(**fit_kwargs)
-        except np.linalg.LinAlgError as e:
-            warnings.warn('failed to fit mode: {}'.format(e))
+        except Exception as e:
+            warnings.warn(f'failed to fit model: {e}')
             continue
-        length = len(lm.model.exog_names)
         if rm is None:
+            length = len(lm.model.exog_names)
             rm = DataMatrix(length=length)
             rm.effect = lm.model.exog_names
             rm.p = SeriesColumn(depth=depth)
             rm.z = SeriesColumn(depth=depth)
             rm.est = SeriesColumn(depth=depth)
             rm.se = SeriesColumn(depth=depth)
+        elif length > len(lm.pvalues):
+            warnings.warn(f'failed to fit model: {length} exog_names and only {len(lm.pvalues)} p-values')
+            continue
         for sample in range(i, min(depth, i + winlen)):
             rm.p[:, sample] = list(lm.pvalues[:length])
             rm.z[:, sample] = list(lm.tvalues[:length])
